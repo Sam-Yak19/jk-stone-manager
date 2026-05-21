@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JkStonExports - Truck & Karigaar Manager</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <nav id="mainNav" class="bg-white shadow-md mb-4">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center">
+                <button id="truckLoaderTab" class="py-4 px-6 block hover:text-indigo-500 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600">
+                    Truck Loading
+                </button>
+                <button id="karigaarTab" class="py-4 px-6 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">
+                    Karigaar Work
+                </button>
+                <button id="billBookTab" class="py-4 px-6 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Bill Book</button>
+                <button id="ledgerTab" class="py-4 px-6 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Party Ledger</button>
+                <button id="analyticsTab" class="py-4 px-6 block hover:text-rose-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Analytics</button>
+                <button id="mineTruckTab" class="py-4 px-6 block hover:text-cyan-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Mine Trucks</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="truckLoaderPage" class="container mx-auto p-4 max-w-7xl">
+        <header class="mb-8 text-center mt-6">
+            <h1 class="text-4xl font-bold text-gray-900">Truck Loading Manager</h1>
+            <p class="text-lg text-gray-600 mt-2">Track stones by Sheet and Up</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">Add Stones</h2>
+                    <form id="addProductForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Target Section</label>
+                            <select id="targetLayerSelect" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Quantity (Pieces)</label>
+                            <input type="number" id="productQuantity" min="1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Length (ft)</label>
+                                <input type="number" id="productLength" step="any" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Width (ft)</label>
+                                <input type="number" id="productWidth" step="any" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Note (Optional)</label>
+                            <input type="text" id="productNote" placeholder="e.g., lower quality, corner cracked" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-colors">Add to Selected Section</button>
+                    </form>
+                    
+                    <hr class="my-6">
+                    <button id="addNewLayerBtn" class="w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600 transition-colors">Start Next Sheet / Up</button>
+                    <button onclick="showSummaryPage()" class="w-full mt-3 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors">Finish & View Summary</button>
+                </div>
+            </div>
+            
+            <div id="layersContainer" class="lg:col-span-2 space-y-6"> 
+            </div>
+        </div>
+        <div class="mt-12 bg-white p-6 rounded-2xl shadow-lg border-t-4 border-indigo-500">
+        
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800">Live Loading Dashboard</h2>
+            
+            <div class="mt-4 md:mt-0 flex gap-4">
+                <div class="bg-blue-50 px-6 py-3 rounded-xl border border-blue-200 shadow-sm text-center">
+                    <p class="text-sm font-semibold text-blue-600 uppercase tracking-wide">Total Pieces</p>
+                    <p id="liveGrandTotalPieces" class="text-3xl font-extrabold text-blue-900">0</p>
+                </div>
+                
+                <div class="bg-indigo-50 px-6 py-3 rounded-xl border border-indigo-200 shadow-sm text-center">
+                    <p class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Total Truck Area</p>
+                    <p id="liveGrandTotalSqFt" class="text-3xl font-extrabold text-indigo-900">0.00 <span class="text-lg font-medium text-indigo-700">ft²</span></p>
+                </div>
+            </div>
+        </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-indigo-700">Totals by Stone Size</h3>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Size (L x W)</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Total Pieces</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total Sq. Ft.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="liveSizeSummaryBody" class="bg-white divide-y divide-gray-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-green-700">Combined Pair Summary (Sheet + Up)</h3>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Loading Pair</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Total Pieces</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total Sq. Ft.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="livePairSummaryBody" class="bg-white divide-y divide-gray-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="karigaarPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Karigaar Work Manager</h1>
+            <p id="karigaarPageDate" class="text-lg text-gray-600 mt-2"></p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">Manage Work</h2>
+                    
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-6">
+                        <h3 class="font-bold text-purple-900 mb-2 text-sm uppercase">Big Block (LxWxH)</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" id="bigBlockL" onchange="updateBigBlock()" placeholder="L" class="w-full px-2 py-1 rounded border border-purple-200">
+                                <input type="number" id="bigBlockW" onchange="updateBigBlock()" placeholder="W" class="w-full px-2 py-1 rounded border border-purple-200">
+                                <input type="number" id="bigBlockH" onchange="updateBigBlock()" placeholder="H" class="w-full px-2 py-1 rounded border border-purple-200">
+                            </div>
+                    </div>
+
+                    <div class="my-4">
+                        <label class="block text-sm font-medium text-gray-700">Karigaar Name</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <select id="karigaarNameSelector" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-l-md"></select>
+                            <button id="removeKarigaarBtn" class="px-4 py-2 border border-l-0 border-gray-300 text-sm font-medium rounded-r-md text-gray-700 bg-gray-50 hover:bg-gray-100">Remove</button>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <input type="text" id="newKarigaarName" class="w-full text-base px-3 py-1 border border-gray-300 focus:outline-none focus:ring-purple-500 sm:text-sm rounded-md" placeholder="Add new Karigaar...">
+                            <button id="addKarigaarBtn" class="px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600">Add</button>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    
+
+                    <form id="addKarigaarProductForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Number of Products</label>
+                            <input type="number" id="karigaarProductQuantity" min="1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Length (ft)</label>
+                                <input type="number" id="karigaarProductLength" step="any" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Width (ft)</label>
+                                <input type="number" id="karigaarProductWidth" step="any" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition-colors">Add Work</button>
+                    </form>
+                    
+                    <hr class="my-6">
+                    <button id="addNewKarigaarSectionBtn" class="w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600 transition-colors">Start New Section</button>
+                </div>
+            </div>
+            
+            <div id="karigaarLayersContainer" class="lg:col-span-2 space-y-6"></div>
+        </div>
+
+        <footer class="mt-12 bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">Total Square Foot Summary (For Payment)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                <div class="bg-gray-100 p-4 rounded-lg border-l-4 border-purple-500">
+                    <p class="text-sm font-medium text-gray-500">Badi (Length > 3.5ft)</p>
+                    <p id="karigaarBadiTotal" class="text-3xl font-bold text-gray-800">0.00 ft²</p>
+                </div>
+                <div class="bg-gray-100 p-4 rounded-lg border-l-4 border-pink-500">
+                    <p class="text-sm font-medium text-gray-500">Choti (Length <= 3.5ft)</p>
+                    <p id="karigaarChotiTotal" class="text-3xl font-bold text-gray-800">0.00 ft²</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <div id="summaryPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center no-print">
+            <h1 class="text-4xl font-bold text-gray-900">Final Loading Report</h1>
+            <div class="mt-4 flex justify-center gap-4">
+                 <button id="bharaiBtn" class="bg-yellow-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-yellow-600 transition-colors">Bharai</button>
+                 <button id="billBtn" class="bg-teal-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-teal-600 transition-colors">Generate Bill</button>
+                 <button id="printBtn" class="bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-gray-800 transition-colors">Print Report</button>
+                <button id="startNewLoadBtn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-700 transition-colors">Clear & Start New Load</button>
+            </div>
+        </header>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">Dimension Summary</h2>
+            <div id="finalDimensionSummaryContainer" class="overflow-x-auto border border-gray-200 rounded-lg"></div>
+        </div>
+    </div>
+
+    <div id="bharaiModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-start mb-4">
+                 <h3 class="text-xl font-medium text-gray-900">Calculate Loading Labour (Bharai)</h3>
+            </div>
+            <div class="overflow-y-auto max-h-[50vh]">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Dimensions</th>
+                            <th class="px-4 py-2 text-left">Total Qty</th>
+                            <th class="px-4 py-2 text-left">Total Sq. Ft.</th>
+                            <th class="px-4 py-2 text-left">Cost / Sq. Ft.</th>
+                            <th class="px-4 py-2 text-left">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bharaiTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+            <div class="mt-4 pt-4 border-t flex justify-between items-center">
+                <span class="text-lg font-bold">Total Labour Charge:</span>
+                <span id="bharaiTotal" class="text-xl font-bold text-indigo-600">₹0.00</span>
+            </div>
+            <div class="text-right mt-6 pt-4 border-t no-print flex justify-end items-center gap-3">
+                <span id="copyBharaiSuccessMsg" class="text-green-600 text-sm font-bold opacity-0 transition-opacity duration-300">✓ Copied!</span>
+                <button id="copyBharaiBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium shadow-sm">Copy for WhatsApp</button>
+                <button id="closeBharaiModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="billModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-medium text-gray-900">Final Bill Generation</h3>
+            </div>
+
+            <div class="my-4 p-4 bg-gray-50 rounded-lg text-center no-print">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Party Name</label>
+                <div class="flex justify-center items-center gap-2">
+                    <select id="partySelector" class="w-48 border border-gray-300 rounded-md px-2 py-1"></select>
+                    <button id="removePartyBtn" class="text-red-500 hover:text-red-700 text-sm">Remove</button>
+                </div>
+                <div class="mt-2 flex justify-center items-center gap-2">
+                    <input type="text" id="newPartyName" class="w-48 border border-gray-300 rounded-md px-2 py-1" placeholder="Add new party...">
+                    <button id="addPartyBtn" class="text-green-500 hover:text-green-700 text-sm font-bold">Add</button>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto max-h-[40vh]">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Dimensions</th>
+                            <th class="px-4 py-2 text-left">Total Qty</th>
+                            <th class="px-4 py-2 text-left">Total Sq. Ft.</th>
+                            <th class="px-4 py-2 text-left">Selling Price</th>
+                            <th class="px-4 py-2 text-left">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 pt-4 border-t space-y-3 bg-gray-50 p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Stone Subtotal:</span>
+                    <span id="billSubtotal" class="font-bold text-gray-900">₹0.00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Bharai (Labour) Added:</span>
+                    <span id="billBharaiCharge" class="font-bold text-gray-900">₹0.00</span>
+                </div>
+                
+                <hr class="border-gray-300">
+                
+                <div class="flex justify-between items-center bg-yellow-50 p-2 rounded border border-yellow-200 mb-2">
+                    <span class="font-bold text-gray-800">Bill Type:</span>
+                    <select id="billTypeSelector" class="border border-gray-300 rounded-md px-2 py-1 font-semibold text-gray-700 focus:ring-blue-500" onchange="toggleGSTInputs(); calculateBill();">
+                        <option value="kacha">Kacha Bill (No Tax)</option>
+                        <option value="pakka">Pakka Bill (With GST)</option>
+                    </select>
+                </div>
+
+                <div id="gstInputGroup" class="hidden space-y-3 border-l-4 border-blue-400 pl-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700 text-sm">Sale Location:</span>
+                        <select id="saleLocation" class="border border-gray-300 rounded-md px-2 py-1 text-sm" onchange="calculateBill()">
+                            <option value="local">Rajasthan (CGST + SGST)</option>
+                            <option value="interstate">Outside Rajasthan (IGST)</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700 text-sm">GST Rate (%):</span>
+                        <input type="number" id="gstRateInput" value="5" class="border border-gray-300 rounded-md w-20 px-2 py-1 text-right text-sm" oninput="calculateBill()">
+                    </div>
+            </div>
+                
+                <div id="taxBreakdown" class="text-right text-sm text-gray-600 font-semibold min-h-[20px]"></div>
+
+                <div class="flex justify-between items-center pt-2 border-t border-gray-300 mt-2">
+                    <span class="text-xl font-bold text-gray-900">Grand Total:</span>
+                    <span id="billGrandTotal" class="text-2xl font-bold text-teal-600">₹0.00</span>
+                </div>
+            </div>
+
+            <div class="text-right mt-6 pt-4 border-t no-print flex justify-end items-center gap-3">
+                <span id="copyBillSuccessMsg" class="text-green-600 text-sm font-bold opacity-0 transition-opacity duration-300">✓ Copied!</span>
+                <button id="copyBillBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium shadow-sm">Copy for WhatsApp</button>
+                <button id="saveBillBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold shadow-sm">Save & Finalize Bill</button>
+                <button id="printBillBtn" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 font-medium shadow-sm">Print Bill</button>
+                <button id="closeBillModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="billBookPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Digital Bill Book</h1>
+            <p class="text-lg text-gray-600 mt-2">Track monthly sales and generate PDF reports.</p>
+        </header>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4">
+                <div class="flex items-center gap-4 mb-4 md:mb-0">
+                    <label class="font-medium text-gray-700 text-lg">Select Month:</label>
+                    <input type="month" id="monthSelector" class="border border-gray-300 rounded-md px-4 py-2 text-lg focus:ring-orange-500">
+                </div>
+                <button id="downloadMonthlyPDFBtn" class="bg-orange-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-orange-600 transition-colors flex items-center gap-2">
+                    Download Monthly PDF
+                </button>
+            </div>
+
+            <div id="monthlyBillsList" class="space-y-4">
+                </div>
+        </div>
+    </div>
+    
+    <div id="pdfExportContainer" class="hidden bg-white p-8 text-black"></div>
+
+    <div id="ledgerPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Party Payment Ledger</h1>
+            <p class="text-lg text-gray-600 mt-2">Track outstanding balances and payment history.</p>
+        </header>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <div class="flex justify-center mb-8 border-b pb-6">
+                <div class="flex items-center gap-4">
+                    <label class="font-bold text-gray-700 text-xl">Select Party:</label>
+                    <select id="ledgerPartySelector" class="border border-gray-300 rounded-md px-4 py-2 text-lg focus:ring-emerald-500 bg-gray-50 min-w-[250px]">
+                        <option value="">-- Choose a Party --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="ledgerSummaryStats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 hidden">
+                <div class="bg-gray-50 p-6 rounded-xl border-t-4 border-blue-500 text-center shadow-sm">
+                    <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Total Billed</p>
+                    <p id="ledgerTotalBilled" class="text-3xl font-extrabold text-blue-700 mt-2">₹0.00</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl border-t-4 border-green-500 text-center shadow-sm">
+                    <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Total Received</p>
+                    <p id="ledgerTotalReceived" class="text-3xl font-extrabold text-green-700 mt-2">₹0.00</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl border-t-4 border-red-500 text-center shadow-sm">
+                    <p class="text-sm font-bold text-gray-500 uppercase tracking-wider">Outstanding Balance</p>
+                    <p id="ledgerTotalBalance" class="text-3xl font-extrabold text-red-700 mt-2">₹0.00</p>
+                </div>
+            </div>
+
+            <div id="ledgerBillsList" class="space-y-6">
+                <div class="text-center py-10 text-gray-500 italic">Select a party above to view their ledger.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md mx-4 relative">
+            <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Record Payment</h3>
+            
+            <div class="space-y-4 my-4">
+                <div class="flex justify-between text-gray-600">
+                    <span>Bill ID:</span>
+                    <span id="payBillId" class="font-mono text-sm"></span>
+                </div>
+                <div class="flex justify-between text-red-600 font-bold text-lg">
+                    <span>Current Balance:</span>
+                    <span id="payCurrentBalance">₹0.00</span>
+                </div>
+                
+                <hr>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Payment Date</label>
+                    <input type="date" id="paymentDateInput" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-emerald-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Amount Received (₹)</label>
+                    <input type="number" id="paymentAmountInput" min="1" step="any" class="w-full border border-gray-300 rounded-md px-3 py-2 text-xl font-bold text-green-700 focus:ring-emerald-500" placeholder="Enter amount">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancelPaymentBtn" class="px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="confirmPaymentBtn" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-md hover:bg-emerald-700">Save Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="analyticsPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Business Analytics</h1>
+            <p class="text-lg text-gray-600 mt-2">Compare party payment reliability and total outstanding market balances.</p>
+        </header>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">Party Reliability Leaderboard</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Party Name</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total Bills</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total Billed</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total Received</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Market Balance</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Clearance Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="mineTruckPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Incoming Mine Trucks</h1>
+            <p class="text-lg text-gray-600 mt-2">Track raw stone deliveries, quantities, and yard notes.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg h-fit">
+                <h2 class="text-2xl font-semibold mb-4 border-b pb-3 text-cyan-800">Log New Truck</h2>
+                <form id="addMineTruckForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Date</label>
+                        <input type="date" id="mineDate" required class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Party (Mine/Supplier) Name</label>
+                        <input type="text" id="mineParty" required placeholder="e.g., Ramesh Mines" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Total Stones Received</label>
+                        <input type="number" id="mineStones" required min="1" placeholder="Number of stones" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Notes (Sal, Tutan, Marr, etc.)</label>
+                        <textarea id="mineNotes" rows="2" placeholder="Any defects or yard notes..." class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">
+                        Save Truck Entry
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center border-b pb-4 mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Monthly Overview</h2>
+                        <input type="month" id="mineMonthSelector" class="border border-gray-300 rounded-md px-3 py-1 font-bold text-cyan-700 focus:ring-cyan-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-cyan-50 p-4 rounded-xl border border-cyan-100 text-center">
+                            <p class="text-sm font-bold text-cyan-800 uppercase tracking-wide">Total Trucks This Month</p>
+                            <p id="totalMineTrucks" class="text-4xl font-extrabold text-cyan-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+                            <p class="text-sm font-bold text-gray-600 uppercase tracking-wide">Total Stones Received</p>
+                            <p id="totalMineStones" class="text-4xl font-extrabold text-gray-700 mt-1">0</p>
+                        </div>
+                    </div>
+
+                    <div id="minePartyBreakdown" class="flex flex-wrap gap-2">
+                        </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Truck Log</h2>
+                    <div id="mineTruckList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="js/storage.js"></script>
+    <script src="js/truckLoader.js"></script>
+    <script src="js/karigaar.js"></script>
+    <script src="js/billing.js"></script>
+    <script src="js/billBook.js"></script>
+    <script src="js/ledger.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/mineTrucks.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

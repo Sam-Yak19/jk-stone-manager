@@ -1,0 +1,57 @@
+/* Custom Styles for JkStonExports Manager */
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Simple animation for new items */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.new-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Style for editable inputs in the table */
+.editable-input {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.editable-input:focus {
+    outline: none;
+    background-color: white;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); /* focus:ring-indigo-500 */
+}
+
+/* Active tab styling */
+.tab-active {
+    border-color: #4f46e5 !important; /* indigo-600 */
+    color: #4f46e5 !important;
+}
+
+/* Print specific styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #summaryPage, #summaryPage *, #billModal, #billModal *, #bharaiModal, #bharaiModal *, #karigaarModal, #karigaarModal * {
+        visibility: visible;
+    }
+    #summaryPage, #billModal, #bharaiModal, #karigaarModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    #startNewLoadBtn, #printBtn, #renameModal, #bharaiBtn, #billBtn, #karigaarBtnOnReport,
+    #billModal .no-print, #bharaiModal .no-print, #karigaarModal .no-print, #startNewPageBtn, #mainNav {
+        display: none;
+    }
+}
