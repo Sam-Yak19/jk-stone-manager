@@ -7,6 +7,12 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,19 +21,15 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <nav id="mainNav" class="bg-white shadow-md mb-4">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-center">
-                <button id="truckLoaderTab" class="py-4 px-6 block hover:text-indigo-500 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600">
-                    Truck Loading
-                </button>
-                <button id="karigaarTab" class="py-4 px-6 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">
-                    Karigaar Work
-                </button>
-                <button id="billBookTab" class="py-4 px-6 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Bill Book</button>
-                <button id="ledgerTab" class="py-4 px-6 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Party Ledger</button>
-                <button id="analyticsTab" class="py-4 px-6 block hover:text-rose-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Analytics</button>
-                <button id="mineTruckTab" class="py-4 px-6 block hover:text-cyan-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500">Mine Trucks</button>
+    <nav id="mainNav" class="bg-white shadow-md mb-4 no-print sticky top-0 z-50">
+        <div class="container mx-auto">
+            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2">
+                <button id="truckLoaderTab" class="py-4 px-5 block hover:text-indigo-500 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600 shrink-0 transition-colors">Truck Loading</button>
+                <button id="karigaarTab" class="py-4 px-5 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Karigaar Work</button>
+                <button id="billBookTab" class="py-4 px-5 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Bill Book</button>
+                <button id="ledgerTab" class="py-4 px-5 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Party Ledger</button>
+                <button id="analyticsTab" class="py-4 px-5 block hover:text-rose-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Analytics</button>
+                <button id="mineTruckTab" class="py-4 px-5 block hover:text-cyan-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Mine Trucks</button>
             </div>
         </div>
     </nav>
