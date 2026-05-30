@@ -25,6 +25,7 @@
         <div class="container mx-auto">
             <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2">
                 <button id="truckLoaderTab" class="py-4 px-5 block hover:text-indigo-500 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600 shrink-0 transition-colors">Truck Loading</button>
+                <button id="savedTrucksTab" class="py-4 px-5 block hover:text-blue-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Saved Trucks</button>
                 <button id="karigaarTab" class="py-4 px-5 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Karigaar Work</button>
                 <button id="billBookTab" class="py-4 px-5 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Bill Book</button>
                 <button id="ledgerTab" class="py-4 px-5 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Party Ledger</button>
@@ -39,6 +40,22 @@
             <h1 class="text-4xl font-bold text-gray-900">Truck Loading Manager</h1>
             <p class="text-lg text-gray-600 mt-2">Track stones by Sheet and Up</p>
         </header>
+
+        <div class="mb-6 bg-white p-5 rounded-xl shadow-sm border border-indigo-100 flex flex-col md:flex-row gap-4 items-end">
+            <div class="w-full md:w-1/3">
+                <label class="block text-sm font-bold text-gray-700">Loading Date</label>
+                <input type="date" id="truckSessionDate" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-semibold text-gray-800">
+            </div>
+            <div class="w-full md:w-1/3">
+                <label class="block text-sm font-bold text-gray-700">Party Name / Truck No.</label>
+                <input type="text" id="truckSessionParty" placeholder="e.g. ABC Builders (RJ20 1234)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-semibold text-gray-800">
+            </div>
+            <div class="w-full md:w-1/3">
+                <button onclick="saveTruckSessionToDatabase()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow transition-colors">
+                    Save Sheet to Database
+                </button>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
             <div class="lg:col-span-1">
@@ -121,7 +138,7 @@
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-3 text-green-700">Combined Pair Summary (Sheet + Up)</h3>
+                    <h3 class="text-lg font-semibold mb-3 text-green-700">Combined  Summary</h3>
                     <div class="overflow-x-auto border border-gray-200 rounded-lg">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -536,6 +553,25 @@
         </div>
     </div>
 
+
+    <div id="savedTrucksPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-900">Saved Truck Sheets</h1>
+            <p class="text-lg text-gray-600 mt-2">View, resume, or print previously saved truck loadings.</p>
+        </header>
+
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="startBrandNewTruck()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors">
+                + Create New Truck Loading
+            </button>
+            <input type="month" id="savedTrucksMonthSelector" class="border border-gray-300 rounded-md px-3 py-2 font-bold text-indigo-700 focus:ring-indigo-500">
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+            <div id="savedTrucksList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </div>
+    </div>
 
     <script src="js/storage.js"></script>
     <script src="js/truckLoader.js"></script>

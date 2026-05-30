@@ -135,21 +135,19 @@ window.showSummaryPage = function() {
 };
 
 // NEW: Function to instantly calculate SqFt and Pair groupings
+// NEW: Function to instantly calculate SqFt and Section groupings individually
 function updateLiveSummary() {
     const sizeMap = new Map();
-    const pairMap = new Map();
+    const sectionMap = new Map(); // We now track by individual section, not pairs
     let grandTotalSqFt = 0;
     let grandTotalPieces = 0;
 
     layers.forEach((layer) => {
-        // Find the number in the name (e.g., gets "1" from "Sheet 1" or "Up 1")
-        const match = layer.name.match(/\d+/);
-        const pairNumber = match ? match[0] : "Unknown";
-        const pairKey = `Pair ${pairNumber} (Sheet ${pairNumber} + Up ${pairNumber})`;
+        // We use the exact name (e.g., "Sheet 1" or "Up 2") instead of finding a pair
+        const sectionKey = layer.name; 
 
-        // Set up empty counters if this is the first time we see this pair
-        if (!pairMap.has(pairKey)) {
-            pairMap.set(pairKey, { pieces: 0, sqft: 0 });
+        if (!sectionMap.has(sectionKey)) {
+            sectionMap.set(sectionKey, { pieces: 0, sqft: 0 });
         }
 
         layer.products.forEach(p => {
@@ -158,6 +156,7 @@ function updateLiveSummary() {
             
             grandTotalSqFt += sqft;
             grandTotalPieces += p.quantity;
+            
             // 1. Calculate Size Totals
             if (!sizeMap.has(sizeKey)) {
                 sizeMap.set(sizeKey, { pieces: 0, sqft: 0 });
@@ -166,10 +165,10 @@ function updateLiveSummary() {
             s.pieces += p.quantity;
             s.sqft += sqft;
 
-            // 2. Calculate Combined Pair Totals
-            const pr = pairMap.get(pairKey);
-            pr.pieces += p.quantity;
-            pr.sqft += sqft;
+            // 2. Calculate Individual Section Totals
+            const sec = sectionMap.get(sectionKey);
+            sec.pieces += p.quantity;
+            sec.sqft += sqft;
         });
     });
 
@@ -182,6 +181,7 @@ function updateLiveSummary() {
     if (grandTotalPiecesEl) {
         grandTotalPiecesEl.textContent = grandTotalPieces;
     }
+
     // 3. Draw Size Summary on screen
     const sizeTbody = document.getElementById('liveSizeSummaryBody');
     if (sizeTbody) {
@@ -199,16 +199,16 @@ function updateLiveSummary() {
         });
     }
 
-    // 4. Draw Pair Summary on screen
-    const pairTbody = document.getElementById('livePairSummaryBody');
+    // 4. Draw Individual Section Summary on screen
+    const pairTbody = document.getElementById('livePairSummaryBody'); // Keeping the ID the same so HTML doesn't break
     if (pairTbody) {
         pairTbody.innerHTML = '';
-        if (pairMap.size === 0) pairTbody.innerHTML = '<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No pairs added yet.</td></tr>';
+        if (sectionMap.size === 0) pairTbody.innerHTML = '<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No sections added yet.</td></tr>';
         
-        pairMap.forEach((data, pair) => {
+        sectionMap.forEach((data, section) => {
             pairTbody.innerHTML += `
                 <tr>
-                    <td class="px-4 py-2 font-medium text-gray-800">${pair}</td>
+                    <td class="px-4 py-2 font-medium text-gray-800">${section}</td>
                     <td class="px-4 py-2 text-center text-green-600 font-bold">${data.pieces}</td>
                     <td class="px-4 py-2 text-right text-gray-600">${data.sqft.toFixed(2)}</td>
                 </tr>
@@ -247,3 +247,205 @@ window.removeTruckSection = function(sectionIndex) {
         }
     }
 }
+// ==========================================
+// TRUCK SESSION DATABASE (DRAFTS & ARCHIVE)
+// ==========================================
+
+let truckSessionArchive = [];
+
+// 1. Load existing saved trucks when app opens
+function loadTruckSessions() {
+    const saved = localStorage.getItem('jkTruckSessions');
+    if (saved) truckSessionArchive = JSON.parse(saved);
+}
+loadTruckSessions();
+
+function saveTruckSessions() {
+    localStorage.setItem('jkTruckSessions', JSON.stringify(truckSessionArchive));
+}
+
+// 2. Save the active screen to the database
+window.saveTruckSessionToDatabase = function() {
+    const dateInput = document.getElementById('truckSessionDate').value;
+    const partyInput = document.getElementById('truckSessionParty').value.trim();
+
+    if (!partyInput) {
+        alert("Please enter a Party Name / Truck No. before saving!");
+        return;
+    }
+
+    if (layers.length === 0 || layers.every(l => l.products.length === 0)) {
+        alert("Cannot save an empty truck. Add some stones first!");
+        return;
+    }
+
+    // Create the MongoDB-style document
+    const session = {
+        id: 'TRK-' + Date.now(),
+        date: dateInput,
+        party: partyInput,
+        layersData: JSON.parse(JSON.stringify(layers)) // Deep copy of all stones
+    };
+
+    truckSessionArchive.push(session);
+    saveTruckSessions();
+
+    // Clear the active whiteboard screen
+    layers = [];
+    document.getElementById('truckSessionParty').value = '';
+    saveTruckData();
+    renderLayers();
+    updateLayerDropdown();
+
+    // Instantly jump to the Saved Trucks page to see it
+    document.getElementById('savedTrucksTab').click();
+};
+
+// 3. Draw the Saved Trucks on the Dashboard
+window.renderSavedTrucks = function() {
+    const container = document.getElementById('savedTrucksList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (truckSessionArchive.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 italic">No saved trucks found in the database.</div>`;
+        return;
+    }
+
+    // Sort so the newest saved truck is always first
+    const sorted = [...truckSessionArchive].reverse();
+
+    sorted.forEach(session => {
+        // Calculate totals for the card
+        let tSqft = 0;
+        let tPieces = 0;
+        session.layersData.forEach(l => {
+            l.products.forEach(p => {
+                tSqft += (p.length * p.width * p.quantity);
+                tPieces += p.quantity;
+            });
+        });
+
+        const card = document.createElement('div');
+        card.className = 'border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow bg-gray-50 flex flex-col justify-between';
+        card.innerHTML = `
+            <div>
+                <h3 class="font-bold text-xl text-gray-900 mb-1">${session.party}</h3>
+                <p class="text-sm text-indigo-600 font-semibold mb-3">📅 ${session.date}</p>
+                <div class="flex justify-between text-sm text-gray-600 mb-4 bg-white p-2 rounded border border-gray-100">
+                    <span>Total: <span class="font-bold text-gray-800">${tPieces} pcs</span></span>
+                    <span>Area: <span class="font-bold text-gray-800">${tSqft.toFixed(2)} ft²</span></span>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-3 mt-2">
+                <button onclick="resumeTruckSession('${session.id}')" class="px-3 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-bold rounded text-sm transition-colors shadow-sm">Resume Loading</button>
+                <button onclick="deleteTruckSession('${session.id}')" class="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 font-bold rounded text-sm transition-colors shadow-sm">Delete</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+};
+
+// 4. Pull a saved truck back onto the active screen
+window.resumeTruckSession = function(id) {
+    if (layers.length > 0 && !layers.every(l => l.products.length === 0)) {
+        if(!confirm("Warning: You have active stones on the screen. Resuming a saved truck will overwrite your current screen. Proceed?")) return;
+    }
+
+    const session = truckSessionArchive.find(s => s.id === id);
+    if (session) {
+        // Load data back to the active screen variables
+        layers = JSON.parse(JSON.stringify(session.layersData));
+        document.getElementById('truckSessionDate').value = session.date;
+        document.getElementById('truckSessionParty').value = session.party;
+        
+        saveTruckData();
+        renderLayers();
+        updateLayerDropdown();
+        
+        // Remove it from the archive (since it is now active again)
+        truckSessionArchive = truckSessionArchive.filter(s => s.id !== id);
+        saveTruckSessions();
+        
+        // Jump back to the active loading screen
+        document.getElementById('truckLoaderTab').click();
+    }
+};
+
+window.deleteTruckSession = function(id) {
+    if(confirm("Are you sure you want to permanently delete this saved truck sheet?")) {
+        truckSessionArchive = truckSessionArchive.filter(s => s.id !== id);
+        saveTruckSessions();
+        renderSavedTrucks(); // Refresh the list
+    }
+};
+
+window.startBrandNewTruck = function() {
+    if (layers.length > 0 && !layers.every(l => l.products.length === 0)) {
+        if(!confirm("Are you sure? This will clear your current active screen.")) return;
+    }
+    layers = [];
+    document.getElementById('truckSessionParty').value = '';
+    document.getElementById('truckSessionDate').valueAsDate = new Date();
+    saveTruckData();
+    renderLayers();
+    updateLayerDropdown();
+    document.getElementById('truckLoaderTab').click();
+};
+
+// 5. Make the new Navigation Tab work
+// 5. Make the new Navigation Tab work
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTrucksTab = document.getElementById('savedTrucksTab');
+    const savedTrucksPage = document.getElementById('savedTrucksPage');
+    const truckLoaderPage = document.getElementById('truckLoaderPage');
+    const mainTab = document.getElementById('truckLoaderTab');
+    
+    // A safe list of all pages in your app to easily hide them
+    const allPageIds = ['truckLoaderPage', 'savedTrucksPage', 'karigaarPage', 'summaryPage', 'billBookPage', 'ledgerPage', 'analyticsPage', 'mineTruckPage'];
+
+    if (savedTrucksTab) {
+        savedTrucksTab.addEventListener('click', () => {
+            // Safely hide all pages
+            allPageIds.forEach(id => {
+                const page = document.getElementById(id);
+                if (page) page.classList.add('hidden');
+            });
+            
+            // Show ONLY the Saved Trucks page
+            if (savedTrucksPage) savedTrucksPage.classList.remove('hidden');
+            
+            // Style the tabs
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-500', 'border-indigo-600', 'text-indigo-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            savedTrucksTab.classList.remove('border-transparent', 'text-gray-500');
+            savedTrucksTab.classList.add('border-blue-500', 'text-blue-500');
+            
+            // Refresh the data list
+            renderSavedTrucks();
+        });
+    }
+
+    if(mainTab) {
+        mainTab.addEventListener('click', () => {
+             // Safely hide all pages
+             allPageIds.forEach(id => {
+                 const page = document.getElementById(id);
+                 if (page) page.classList.add('hidden');
+             });
+             
+             // Show ONLY the Active Truck Loader page
+             if(truckLoaderPage) truckLoaderPage.classList.remove('hidden');
+
+             // Style the tabs
+             document.querySelectorAll('nav button').forEach(btn => {
+                 btn.classList.remove('border-blue-500', 'text-blue-500', 'border-indigo-600', 'text-indigo-600');
+                 btn.classList.add('border-transparent', 'text-gray-500');
+             });
+             mainTab.classList.remove('border-transparent', 'text-gray-500');
+             mainTab.classList.add('border-indigo-600', 'text-indigo-600');
+        });
+    }
+});
