@@ -27,15 +27,14 @@ function saveKarigaarData() {
     localStorage.setItem('jkKarigaarData', JSON.stringify(karigaarData));
 }
 
-// --- 2. UPDATE BIG BLOCK (AUTO-TARGET LATEST SHEET) ---
+// --- 2. UPDATE BIG BLOCK (TARGETS THE DROPDOWN) ---
 
 window.updateBigBlock = function() {
-    if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) {
-        return; // Don't do anything if no sheet exists yet
-    }
+    if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) return;
 
-    // ALWAYS apply the Big Block dimensions to the most recent sheet
-    const sectionIndex = karigaarData[currentKarigaarName].length - 1;
+    // Grab the target sheet from the dropdown!
+    const select = document.getElementById('karigaarTargetSheetSelect');
+    const sectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
 
     const l = parseFloat(document.getElementById('bigBlockL').value) || 0;
     const w = parseFloat(document.getElementById('bigBlockW').value) || 0;
@@ -52,6 +51,42 @@ window.updateBigBlock = function() {
 
 // --- 3. UI REFRESH FUNCTIONS ---
 
+// NEW: Keeps the Target Sheet Dropdown updated
+function updateKarigaarTargetDropdown() {
+    const select = document.getElementById('karigaarTargetSheetSelect');
+    if (!select) return;
+
+    select.innerHTML = ''; // Clear old
+    
+    if (currentKarigaarName && karigaarData[currentKarigaarName] && karigaarData[currentKarigaarName].length > 0) {
+        karigaarData[currentKarigaarName].forEach((sheet, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = sheet.name;
+            select.appendChild(option);
+        });
+        
+        // Auto-select the newest sheet
+        select.value = karigaarData[currentKarigaarName].length - 1;
+        
+        // Auto-fill the Big Block inputs based on the selected sheet
+        updateBigBlockInputs(select.value);
+    } else {
+        document.getElementById('bigBlockL').value = '';
+        document.getElementById('bigBlockW').value = '';
+        document.getElementById('bigBlockH').value = '';
+    }
+}
+
+// Helper to fill the Big Block boxes when you switch target sheets
+function updateBigBlockInputs(index) {
+    if (!karigaarData[currentKarigaarName] || !karigaarData[currentKarigaarName][index]) return;
+    const bigBlock = karigaarData[currentKarigaarName][index].bigBlock || {l:'', w:'', h:''};
+    document.getElementById('bigBlockL').value = bigBlock.l || '';
+    document.getElementById('bigBlockW').value = bigBlock.w || '';
+    document.getElementById('bigBlockH').value = bigBlock.h || '';
+}
+
 function refreshKarigaarUI() {
     const nameSelect = document.getElementById('karigaarNameSelector');
     if (!nameSelect) return;
@@ -63,31 +98,14 @@ function refreshKarigaarUI() {
     if (karigaarNames.length === 0) {
         nameSelect.innerHTML = `<option disabled selected>No Karigaars Added</option>`;
         currentKarigaarName = '';
-        
-        // Clear Big Block Inputs
-        document.getElementById('bigBlockL').value = '';
-        document.getElementById('bigBlockW').value = '';
-        document.getElementById('bigBlockH').value = '';
     } else {
         karigaarNames.forEach(name => {
             nameSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
         nameSelect.value = currentKarigaarName;
-
-        // Auto-fill Big Block Inputs from the LATEST section
-        if (karigaarData[currentKarigaarName] && karigaarData[currentKarigaarName].length > 0) {
-            const sectionIndex = karigaarData[currentKarigaarName].length - 1;
-            const bigBlock = karigaarData[currentKarigaarName][sectionIndex].bigBlock || {l:'', w:'', h:''};
-            document.getElementById('bigBlockL').value = bigBlock.l || '';
-            document.getElementById('bigBlockW').value = bigBlock.w || '';
-            document.getElementById('bigBlockH').value = bigBlock.h || '';
-        } else {
-            document.getElementById('bigBlockL').value = '';
-            document.getElementById('bigBlockW').value = '';
-            document.getElementById('bigBlockH').value = '';
-        }
     }
 
+    updateKarigaarTargetDropdown(); // Call the new dropdown function
     renderKarigaarLayers();
     calculateKarigaarTotals();
 }
@@ -108,8 +126,14 @@ function renderKarigaarLayers() {
         // --- YIELD MATH ---
         const totalSqFt = layer.products.reduce((sum, p) => sum + (p.length * p.width * p.quantity), 0);
         const bigBlock = layer.bigBlock || {l:0, w:0, h:0};
-        const volume = bigBlock.l * bigBlock.w * bigBlock.h;
-        const yieldVal = (volume > 0) ? (totalSqFt / volume).toFixed(2) : "0.00";
+        
+        let yieldVal = "0.00";
+        if (bigBlock.l > 0 && bigBlock.w > 0 && bigBlock.h > 0) {
+            // New Formula: var1 = (l * b * h) / 12
+            const var1 = (bigBlock.l * bigBlock.w * bigBlock.h) / 12;
+            // average = totalSquareFeet / var1
+            yieldVal = (totalSqFt / var1).toFixed(2);
+        }
 
         const div = document.createElement('div');
         div.className = 'bg-white p-6 rounded-2xl shadow-lg new-item';
@@ -280,20 +304,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const len = parseFloat(document.getElementById('karigaarProductLength').value);
             const wid = parseFloat(document.getElementById('karigaarProductWidth').value);
             
-            // ALWAYS target the most recent section
-            const targetSectionIndex = karigaarData[currentKarigaarName].length - 1;
+            // 1. Grab target from dropdown
+            const select = document.getElementById('karigaarTargetSheetSelect');
+            const targetSectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
 
             karigaarData[currentKarigaarName][targetSectionIndex].products.push({
                 id: Date.now(), length: len, width: wid, quantity: qty
             });
 
             saveKarigaarData();
+            
+            // 2. Remember where we were
+            const keepSection = select ? select.value : "0";
+            
             refreshKarigaarUI();
             
-            // Reset input boxes
+            // 3. Reset input boxes and put the dropdown back
             document.getElementById('karigaarProductQuantity').value = '';
             document.getElementById('karigaarProductLength').value = '';
             document.getElementById('karigaarProductWidth').value = '';
+            if (select) select.value = keepSection;
+        });
+    }
+
+    // Make the dropdown clickable so big blocks instantly update
+    const karigaarTargetSheetSelect = document.getElementById('karigaarTargetSheetSelect');
+    if (karigaarTargetSheetSelect) {
+        karigaarTargetSheetSelect.addEventListener('change', (e) => {
+            updateBigBlockInputs(e.target.value);
         });
     }
 
@@ -304,49 +342,169 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- KARIGAAR PERMANENT ARCHIVE SYSTEM ---
+// ==========================================
+// KARIGAAR PERMANENT ARCHIVE (CLOUD DATABASE)
+// ==========================================
 
-let karigaarArchive = [];
+let cloudKarigaarArchive = [];
 
-// 1. Load the Archive when the file runs
-function loadKarigaarArchive() {
-    const saved = localStorage.getItem('jkKarigaarArchive');
-    if (saved) karigaarArchive = JSON.parse(saved);
-}
-loadKarigaarArchive();
-
-function saveKarigaarArchive() {
-    localStorage.setItem('jkKarigaarArchive', JSON.stringify(karigaarArchive));
-}
-
-// 2. The Finalize Function
-window.archiveKarigaarSection = function(sectionIndex) {
+// 1. The Finalize Function (Send to Node.js / MongoDB)
+window.archiveKarigaarSection = async function(sectionIndex) {
     if (!currentKarigaarName || !karigaarData[currentKarigaarName]) return;
     
-    if (confirm("Are you sure you want to finalize this block? This will save it to the permanent Karigaar Ledger and clear it from your active screen.")) {
+    if (confirm("Are you sure you want to finalize this block? It will be permanently saved to the Cloud Database.")) {
         
-        // Grab the exact sheet you are archiving
         const sectionToArchive = karigaarData[currentKarigaarName][sectionIndex];
         
-        // Add timestamps and the Karigaar's name so we know whose work it is
-        sectionToArchive.karigaarName = currentKarigaarName;
-        sectionToArchive.archiveDate = new Date().toLocaleDateString('en-IN');
-        sectionToArchive.timestamp = Date.now();
+        // Structure the data to match your new MongoDB Schema perfectly
+        const payload = {
+            karigaarName: currentKarigaarName,
+            sheetName: sectionToArchive.name,
+            date: new Date().toLocaleDateString('en-IN'),
+            bigBlock: sectionToArchive.bigBlock,
+            products: sectionToArchive.products
+        };
         
-        // Push to the permanent archive database
-        karigaarArchive.push(sectionToArchive);
-        saveKarigaarArchive();
-        
-        // Remove it from the active "whiteboard" screen
-        karigaarData[currentKarigaarName].splice(sectionIndex, 1);
-        
-        // Rename remaining active sheets so they stay in order
-        karigaarData[currentKarigaarName].forEach((section, index) => {
-            section.name = `Work Sheet ${index + 1}`;
-        });
-        
-        saveKarigaarData();
-        refreshKarigaarUI();
-        alert(`Block successfully finalized and saved for ${currentKarigaarName}!`);
+        try {
+            // 🚀 THE BRIDGE: Send data to MongoDB
+            const response = await fetch('http://localhost:5000/api/karigaars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                // Remove it from the active "whiteboard" screen
+                karigaarData[currentKarigaarName].splice(sectionIndex, 1);
+                
+                // Rename remaining active sheets so they stay in order
+                karigaarData[currentKarigaarName].forEach((section, index) => {
+                    section.name = `Work Sheet ${index + 1}`;
+                });
+                
+                saveKarigaarData();
+                refreshKarigaarUI();
+                alert(`✅ Block successfully saved to the Cloud for ${currentKarigaarName}!`);
+            } else {
+                alert("Failed to save to cloud database. Check terminal.");
+            }
+        } catch (error) {
+            alert("Could not connect to backend server! Make sure 'node server.js' is running.");
+        }
     }
 }
+
+// 2. Fetch and Draw the Saved Karigaar Work from MongoDB
+window.renderSavedKarigaarArchive = async function() {
+    const container = document.getElementById('savedKarigaarList');
+    const filterSelect = document.getElementById('savedKarigaarFilter');
+    if (!container) return;
+
+    container.innerHTML = '<div class="text-center py-8 text-purple-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
+
+    try {
+        const response = await fetch('http://localhost:5000/api/karigaars');
+        const result = await response.json();
+        cloudKarigaarArchive = result.data;
+
+        if (cloudKarigaarArchive.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 bg-white rounded-xl shadow-sm text-gray-500 italic">No finalized Karigaar work found in the database.</div>`;
+            return;
+        }
+
+        // Populate the Dropdown with Unique Karigaar Names
+        const uniqueNames = [...new Set(cloudKarigaarArchive.map(item => item.karigaarName))];
+        const currentFilter = filterSelect.value;
+        
+        filterSelect.innerHTML = '<option value="ALL">-- Show All Work --</option>';
+        uniqueNames.forEach(name => {
+            filterSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+        filterSelect.value = uniqueNames.includes(currentFilter) ? currentFilter : "ALL";
+
+        // Filter the data based on selection
+        const filteredData = filterSelect.value === "ALL" 
+            ? cloudKarigaarArchive 
+            : cloudKarigaarArchive.filter(item => item.karigaarName === filterSelect.value);
+
+        container.innerHTML = '';
+        
+        filteredData.forEach(block => {
+            // Calculate Totals for this block
+            const totalSqFt = block.products.reduce((sum, p) => sum + (p.length * p.width * p.quantity), 0);
+            const volume = (block.bigBlock.l * block.bigBlock.w * block.bigBlock.h) / 12;
+            const yieldVal = (volume > 0) ? (totalSqFt / volume).toFixed(2) : "0.00";
+
+            const card = document.createElement('div');
+            card.className = 'bg-white p-6 rounded-2xl shadow-md border border-purple-100 flex flex-col md:flex-row gap-6 items-start';
+            
+            // Generate list of cut stones
+            const stonesListHtml = block.products.map(p => `
+                <li class="flex justify-between items-center bg-gray-50 p-2 rounded text-sm border border-gray-100">
+                    <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
+                    <span class="font-bold text-purple-700">${p.quantity} pcs</span>
+                </li>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-purple-100 pb-4 md:pb-0 md:pr-6">
+                    <h3 class="text-2xl font-black text-purple-900">${block.karigaarName}</h3>
+                    <p class="text-sm text-purple-600 font-bold mb-3">📅 ${block.date} | ${block.sheetName}</p>
+                    
+                    <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 mb-4">
+                        <p class="text-xs text-purple-800 uppercase font-bold tracking-wider mb-1">Block Dimensions</p>
+                        <p class="text-lg font-bold text-gray-800">${block.bigBlock.l} <span class="text-sm font-normal text-gray-500">x</span> ${block.bigBlock.w} <span class="text-sm font-normal text-gray-500">x</span> ${block.bigBlock.h}</p>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-gray-900 text-white p-3 rounded-lg">
+                        <div>
+                            <p class="text-xs text-gray-400 uppercase font-bold">Total Yield</p>
+                            <p class="text-xl font-bold">${yieldVal} <span class="text-xs text-gray-300">ft²/ft³</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400 uppercase font-bold">Total SqFt</p>
+                            <p class="text-xl font-bold text-green-400">${totalSqFt.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="deleteCloudKarigaarBlock('${block._id}')" class="mt-4 w-full py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-lg text-sm transition-colors border border-red-200">Delete Record</button>
+                </div>
+                
+                <div class="w-full md:w-2/3">
+                    <h4 class="font-bold text-gray-800 mb-3 border-b pb-2">Cut Stones Inventory</h4>
+                    ${block.products.length > 0 ? `<ul class="space-y-2 grid grid-cols-1 sm:grid-cols-2 gap-2">${stonesListHtml}</ul>` : `<p class="text-gray-500 italic text-sm">No stones recorded for this block.</p>`}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+        container.innerHTML = `<div class="text-center py-8 text-red-500 font-bold">❌ Cannot connect to backend server.</div>`;
+    }
+}
+
+// 3. Delete a Karigaar record from Cloud
+window.deleteCloudKarigaarBlock = async function(id) {
+    if(confirm("Permanently delete this Karigaar record from the cloud?")) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/karigaars/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                renderSavedKarigaarArchive(); // Refresh the list
+            } else {
+                alert("Failed to delete record.");
+            }
+        } catch (error) {
+            alert("Server error.");
+        }
+    }
+}
+
+// Hook the render function to the Navigation Tab!
+document.addEventListener('DOMContentLoaded', () => {
+    const savedKarigaarTab = document.getElementById('savedKarigaarTab');
+    if(savedKarigaarTab) {
+        savedKarigaarTab.addEventListener('click', () => {
+            renderSavedKarigaarArchive();
+        });
+    }
+});

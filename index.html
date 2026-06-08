@@ -21,16 +21,37 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <nav id="mainNav" class="bg-white shadow-md mb-4 no-print sticky top-0 z-50">
+    <!-- TIER 1: MAIN CATEGORIES -->
+    <nav id="mainNav" class="bg-gray-900 shadow-md mb-0 no-print sticky top-0 z-50">
         <div class="container mx-auto">
-            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2">
-                <button id="truckLoaderTab" class="py-4 px-5 block hover:text-indigo-500 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600 shrink-0 transition-colors">Truck Loading</button>
-                <button id="savedTrucksTab" class="py-4 px-5 block hover:text-blue-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Saved Trucks</button>
-                <button id="karigaarTab" class="py-4 px-5 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Karigaar Work</button>
-                <button id="billBookTab" class="py-4 px-5 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Bill Book</button>
-                <button id="ledgerTab" class="py-4 px-5 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Party Ledger</button>
-                <button id="analyticsTab" class="py-4 px-5 block hover:text-rose-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Analytics</button>
-                <button id="mineTruckTab" class="py-4 px-5 block hover:text-cyan-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Mine Trucks</button>
+            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2 text-white">
+                <button id="mainTabTruck" class="py-4 px-6 block focus:outline-none border-b-4 font-bold border-indigo-500 text-indigo-400 transition-colors">1. Truck Loading & Billing</button>
+                <button id="mainTabKarigaar" class="py-4 px-6 block hover:text-purple-400 focus:outline-none border-b-4 font-bold border-transparent text-gray-300 transition-colors">2. Karigaar Work</button>
+                <button id="mainTabMine" class="py-4 px-6 block hover:text-cyan-400 focus:outline-none border-b-4 font-bold border-transparent text-gray-300 transition-colors">3. Mine Trucks</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- TIER 2: TRUCK LOADING SUB-MENU -->
+    <nav id="subNavTruck" class="bg-white shadow-sm mb-4 no-print border-b">
+        <div class="container mx-auto">
+            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2 text-sm">
+                <button id="truckLoaderTab" class="py-3 px-4 block hover:text-indigo-600 focus:outline-none border-b-2 font-medium border-indigo-600 text-indigo-600 shrink-0 transition-colors">Active Loading</button>
+                <button id="savedTrucksTab" class="py-3 px-4 block hover:text-blue-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Saved Trucks</button>
+                <button id="billBookTab" class="py-3 px-4 block hover:text-orange-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Bill Book</button>
+                <button id="ledgerTab" class="py-3 px-4 block hover:text-emerald-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Party Ledger</button>
+                <button id="analyticsTab" class="py-3 px-4 block hover:text-rose-600 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Analytics</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- TIER 2: KARIGAAR SUB-MENU (Hidden by default) -->
+    <nav id="subNavKarigaar" class="hidden bg-white shadow-sm mb-4 no-print border-b">
+        <div class="container mx-auto">
+            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2 text-sm">
+                <button id="karigaarTab" class="py-3 px-4 block hover:text-purple-600 focus:outline-none border-b-2 font-medium border-purple-600 text-purple-600 shrink-0 transition-colors">Active Work</button>
+                <button id="savedKarigaarTab" class="py-3 px-4 block hover:text-purple-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Saved Karigaar Work</button>
+                <button id="attendanceTab" class="py-3 px-4 block hover:text-pink-500 focus:outline-none border-b-2 font-medium border-transparent text-gray-500 shrink-0 transition-colors">Attendance</button>
             </div>
         </div>
     </nav>
@@ -68,9 +89,19 @@
                             </select>
                         </div>
                         
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Quantity (Pieces)</label>
-                            <input type="number" id="productQuantity" min="1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Quantity (Pieces)</label>
+                                <input type="number" id="productQuantity" min="1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Stone Category</label>
+                                <select id="productCategory" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
+                                    <option value="Fresh" selected>Fresh</option>
+                                    <option value="Sal">Sal</option>
+                                    <option value="Tender">Tender</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <div class="grid grid-cols-2 gap-4">
@@ -196,6 +227,12 @@
 
                     <form id="addKarigaarProductForm" class="space-y-4">
                         <div>
+                            <label class="block text-sm font-bold text-gray-700">Target Work Sheet</label>
+                            <select id="karigaarTargetSheetSelect" class="mt-1 block w-full px-3 py-2 border border-purple-300 rounded-md bg-purple-50 font-bold text-purple-800 focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                </select>
+                        </div>
+
+                        <div>
                             <label class="block text-sm font-medium text-gray-700">Number of Products</label>
                             <input type="number" id="karigaarProductQuantity" min="1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
                         </div>
@@ -234,6 +271,75 @@
             </div>
         </footer>
     </div>
+
+    <div id="savedKarigaarPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Saved Karigaar Ledger</h1>
+            <p class="text-lg text-gray-600 mt-2">View finalized blocks pulled directly from the Cloud Database.</p>
+        </header>
+        
+        <div class="flex justify-center mb-6">
+            <div class="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm border border-purple-100">
+                <label class="font-bold text-purple-900">Filter by Karigaar:</label>
+                <select id="savedKarigaarFilter" onchange="renderSavedKarigaarArchive()" class="border border-purple-300 rounded-md px-4 py-2 font-bold text-purple-800 bg-purple-50 focus:ring-purple-500 min-w-[250px]">
+                    <option value="ALL">-- Show All Work --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="savedKarigaarList" class="space-y-6">
+            <p class="text-gray-500 italic text-center py-10 bg-white rounded-xl shadow-sm">Archive database will load here...</p>
+        </div>
+    </div>
+
+    <div id="attendancePage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-bold text-gray-900">Karigaar Attendance</h1>
+            <p class="text-lg text-gray-600 mt-2">Track daily presence and generate monthly salary reports.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-pink-500 h-fit">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Daily Register</h2>
+                    <input type="date" id="attendanceDate" onchange="loadDailyAttendance()" class="border border-gray-300 rounded-md px-3 py-2 font-bold text-pink-700 focus:ring-pink-500">
+                </div>
+                
+                <div id="attendanceList" class="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
+                    <p class="text-gray-500 italic text-center py-4">Select a date to load the register.</p>
+                </div>
+
+                <button onclick="saveDailyAttendance()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">
+                    Save Daily Attendance
+                </button>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-lg h-fit">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Monthly Report</h2>
+                    <input type="month" id="attendanceMonth" onchange="generateMonthlyReport()" class="border border-gray-300 rounded-md px-3 py-2 font-bold text-indigo-700 focus:ring-indigo-500">
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 border">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Karigaar Name</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-green-600 uppercase">Present</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-red-600 uppercase">Absent</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-yellow-600 uppercase">Half</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-indigo-600 uppercase">Total Days</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceReportBody" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500 italic">Select a month to view report.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="summaryPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
         <header class="mb-8 text-center no-print">
             <h1 class="text-4xl font-bold text-gray-900">Final Loading Report</h1>
@@ -320,9 +426,9 @@
                     <span class="font-medium text-gray-700">Stone Subtotal:</span>
                     <span id="billSubtotal" class="font-bold text-gray-900">₹0.00</span>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="font-medium text-gray-700">Bharai (Labour) Added:</span>
-                    <span id="billBharaiCharge" class="font-bold text-gray-900">₹0.00</span>
+                <div class="flex justify-between items-center text-red-600 bg-red-50 p-2 rounded border border-red-100 mb-2">
+                    <span class="font-medium">Bharai (Labour) Deducted:</span>
+                    <span id="billBharaiCharge" class="font-bold text-red-700">-₹0.00</span>
                 </div>
                 
                 <hr class="border-gray-300">
@@ -573,9 +679,38 @@
         </div>
     </div>
 
+    <div id="truckSummaryModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+        <div class="relative mx-auto p-6 border w-full max-w-4xl shadow-2xl rounded-xl bg-white m-4">
+            <div class="flex justify-between items-start mb-4 border-b pb-4">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">Truck Loading Summary</h3>
+                    <p class="text-sm text-gray-500 mt-1">Date: <span id="summaryTruckDate" class="font-bold text-gray-700"></span></p>
+                </div>
+                <button onclick="document.getElementById('truckSummaryModal').classList.add('hidden')" class="text-gray-400 hover:text-red-500 font-bold text-3xl leading-none">&times;</button>
+            </div>
+            
+            <div class="mb-4 bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                <p class="text-lg text-gray-700">Party/Truck No: <span id="summaryTruckParty" class="font-bold text-indigo-800 text-xl"></span></p>
+                <div class="text-left md:text-right bg-white px-4 py-2 rounded shadow-sm border border-indigo-100">
+                    <p class="text-sm font-bold text-gray-600">Total: <span id="summaryTruckPieces" class="text-indigo-600 text-lg"></span> <span class="text-gray-500 font-normal">pcs</span></p>
+                    <p class="text-sm font-bold text-gray-600">Area: <span id="summaryTruckArea" class="text-indigo-600 text-lg"></span> <span class="text-gray-500 font-normal">ft²</span></p>
+                </div>
+            </div>
+
+            <div id="summaryTruckLayers" class="overflow-y-auto max-h-[50vh] space-y-4 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                </div>
+
+            <div class="text-right mt-6 pt-4 border-t no-print flex justify-end gap-3">
+                <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold shadow-sm transition-colors">🖨️ Print Record</button>
+                <button onclick="document.getElementById('truckSummaryModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-bold transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/storage.js"></script>
     <script src="js/truckLoader.js"></script>
     <script src="js/karigaar.js"></script>
+    <script src="js/attendance.js"></script>
     <script src="js/billing.js"></script>
     <script src="js/billBook.js"></script>
     <script src="js/ledger.js"></script>

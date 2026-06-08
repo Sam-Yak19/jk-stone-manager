@@ -20,9 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Clear Application Data
     document.getElementById('startNewLoadBtn')?.addEventListener('click', () => {
-        if (confirm("Are you sure? This will delete the current truck and karigaar data.")) {
-            localStorage.removeItem('jkTruckData');
-            localStorage.removeItem('jkKarigaarData');
+        if (confirm("Are you sure you want to start a new truck load? (Your Karigaar work will NOT be affected.)")) {
+            
+            // Fix: Use the exact name from storage.js
+            localStorage.removeItem('Truck Data');
+            
             location.reload();
         }
     });
@@ -125,7 +127,7 @@ window.calculateBharai = function() {
     calculateBill(); 
 };
 
-// NEW: Show/Hide GST based on Bill Type
+// Show/Hide GST based on Bill Type
 window.toggleGSTInputs = function() {
     const billType = document.getElementById('billTypeSelector').value;
     const gstGroup = document.getElementById('gstInputGroup');
@@ -146,11 +148,10 @@ window.calculateBill = function() {
         subtotal += sub;
     });
     
+    // Grab the calculated Bharai and strip any text/symbols from it
     const bharaiText = document.getElementById('bharaiTotal')?.textContent || '₹0';
-    const bharai = parseFloat(bharaiText.replace('₹', '')) || 0;
-    const taxableAmount = subtotal + bharai;
+    const bharai = parseFloat(bharaiText.replace(/[^0-9.]/g, '')) || 0;
     
-    // NEW logic: Check if Kacha or Pakka
     const billType = document.getElementById('billTypeSelector')?.value || 'kacha';
     const isLocal = document.getElementById('saleLocation')?.value === 'local';
     const gstRate = parseFloat(document.getElementById('gstRateInput')?.value) || 0;
@@ -158,14 +159,14 @@ window.calculateBill = function() {
     let cgst = 0, sgst = 0, igst = 0;
     let breakdownHTML = '';
 
-    // Only apply GST if Pakka Bill is selected
+    // Calculate GST based ONLY on the Stone Subtotal (goods cost)
     if (billType === 'pakka' && gstRate > 0) {
         if (isLocal) {
-            cgst = taxableAmount * ((gstRate / 2) / 100);
-            sgst = taxableAmount * ((gstRate / 2) / 100);
+            cgst = subtotal * ((gstRate / 2) / 100);
+            sgst = subtotal * ((gstRate / 2) / 100);
             breakdownHTML = `CGST (${gstRate/2}%): ₹${cgst.toFixed(2)} <br> SGST (${gstRate/2}%): ₹${sgst.toFixed(2)}`;
         } else {
-            igst = taxableAmount * (gstRate / 100);
+            igst = subtotal * (gstRate / 100);
             breakdownHTML = `IGST (${gstRate}%): ₹${igst.toFixed(2)}`;
         }
     }
@@ -173,9 +174,14 @@ window.calculateBill = function() {
     const taxContainer = document.getElementById('taxBreakdown');
     if (taxContainer) taxContainer.innerHTML = breakdownHTML;
 
+    // GRAND TOTAL: Stone Subtotal + Tax - Bharai Deduction
+    let grandTotal = subtotal + cgst + sgst + igst - bharai;
+    if (grandTotal < 0) grandTotal = 0; // Prevents the bill from showing a negative total
+
+    // Update UI with calculated numbers (Bharai gets a minus sign for clarity)
     document.getElementById('billSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('billBharaiCharge').textContent = `₹${bharai.toFixed(2)}`;
-    document.getElementById('billGrandTotal').textContent = `₹${(taxableAmount + cgst + sgst + igst).toFixed(2)}`;
+    document.getElementById('billBharaiCharge').textContent = `-₹${bharai.toFixed(2)}`;
+    document.getElementById('billGrandTotal').textContent = `₹${Math.round(grandTotal).toFixed(2)}`;
 };
 
 // --- PARTY DATA MANAGEMENT ---
@@ -251,7 +257,7 @@ function copyToClipboard(type) {
         const taxText = document.getElementById('taxBreakdown').innerText || "";
         
         textOutput += `Stone Subtotal: ${subtotal}\n`;
-        textOutput += `Bharai Added: ${bharai}\n`;
+        textOutput += `Bharai Deducted: ${bharai}\n`; // Now correctly says Deducted
         
         if (taxText.trim() !== "") {
             // Clean up the HTML breaks in the tax string for plain text
