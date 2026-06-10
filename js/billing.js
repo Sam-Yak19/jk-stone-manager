@@ -61,7 +61,7 @@ window.renderFinalSummary = function() {
     if (typeof layers !== 'undefined') {
         layers.forEach(layer => {
             layer.products.forEach(p => {
-                const key = `${p.length}ft x ${p.width}ft`;
+                const key = `${p.length}ft x ${p.width}ft (${p.category || 'Fresh'})`;
                 dimMap.set(key, (dimMap.get(key) || 0) + p.quantity);
             });
         });
@@ -87,7 +87,9 @@ function openModal(type) {
     const dimMap = new Map();
     if (typeof layers !== 'undefined') {
         layers.forEach(layer => layer.products.forEach(p => {
-            const key = `${p.length}ft x ${p.width}ft`;
+            // STEP 1: Update the key to include the category
+            const key = `${p.length}ft x ${p.width}ft (${p.category || 'Fresh'})`;
+            
             dimMap.set(key, { 
                 qty: (dimMap.get(key)?.qty || 0) + p.quantity,
                 sqft: (dimMap.get(key)?.sqft || 0) + (p.length * p.width * p.quantity)
@@ -110,7 +112,7 @@ function openModal(type) {
 
     if (type === 'bill') calculateBill();
     modal.classList.remove('hidden');
-}
+}   
 
 // --- MATH CALCULATIONS ---
 
@@ -156,18 +158,29 @@ window.calculateBill = function() {
     const isLocal = document.getElementById('saleLocation')?.value === 'local';
     const gstRate = parseFloat(document.getElementById('gstRateInput')?.value) || 0;
     
+    // NEW: Get the custom taxable amount
+    const taxableInput = document.getElementById('gstTaxableAmount');
+    let taxableAmount = subtotal; // Default to taxing the full subtotal
+    
+    if (taxableInput && taxableInput.value !== "") {
+        taxableAmount = parseFloat(taxableInput.value) || 0;
+    } else if (taxableInput) {
+        // Show the user what the full amount is in the background of the input
+        taxableInput.placeholder = Math.round(subtotal);
+    }
+    
     let cgst = 0, sgst = 0, igst = 0;
     let breakdownHTML = '';
 
-    // Calculate GST based ONLY on the Stone Subtotal (goods cost)
+    // Calculate GST based ONLY on the Taxable Amount, not the full subtotal
     if (billType === 'pakka' && gstRate > 0) {
         if (isLocal) {
-            cgst = subtotal * ((gstRate / 2) / 100);
-            sgst = subtotal * ((gstRate / 2) / 100);
-            breakdownHTML = `CGST (${gstRate/2}%): ₹${cgst.toFixed(2)} <br> SGST (${gstRate/2}%): ₹${sgst.toFixed(2)}`;
+            cgst = taxableAmount * ((gstRate / 2) / 100);
+            sgst = taxableAmount * ((gstRate / 2) / 100);
+            breakdownHTML = `<span class="text-xs text-gray-400">Tax applied on: ₹${taxableAmount.toFixed(2)}</span><br>CGST (${gstRate/2}%): ₹${cgst.toFixed(2)} <br> SGST (${gstRate/2}%): ₹${sgst.toFixed(2)}`;
         } else {
-            igst = subtotal * (gstRate / 100);
-            breakdownHTML = `IGST (${gstRate}%): ₹${igst.toFixed(2)}`;
+            igst = taxableAmount * (gstRate / 100);
+            breakdownHTML = `<span class="text-xs text-gray-400">Tax applied on: ₹${taxableAmount.toFixed(2)}</span><br>IGST (${gstRate}%): ₹${igst.toFixed(2)}`;
         }
     }
 
@@ -178,7 +191,7 @@ window.calculateBill = function() {
     let grandTotal = subtotal + cgst + sgst + igst - bharai;
     if (grandTotal < 0) grandTotal = 0; // Prevents the bill from showing a negative total
 
-    // Update UI with calculated numbers (Bharai gets a minus sign for clarity)
+    // Update UI with calculated numbers
     document.getElementById('billSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById('billBharaiCharge').textContent = `-₹${bharai.toFixed(2)}`;
     document.getElementById('billGrandTotal').textContent = `₹${Math.round(grandTotal).toFixed(2)}`;

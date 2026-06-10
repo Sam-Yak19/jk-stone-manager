@@ -95,7 +95,7 @@
                     html += `
                     <li class="bg-gray-50 p-3 rounded-md">
                         <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-700">${product.length}ft x ${product.width}ft</span>
+                            <span class="font-medium text-gray-700">${product.length}ft x ${product.width}ft <span class="text-xs font-bold text-indigo-500 ml-1">(${product.category || 'Fresh'})</span></span>
                             <span class="font-bold text-indigo-600">${product.quantity} pieces</span>
                             <button onclick="removeProduct(${index}, ${product.id})" class="text-red-500 hover:text-red-700 text-sm font-semibold">Remove</button>
                         </div>
@@ -151,7 +151,7 @@
 
             layer.products.forEach(p => {
                 const sqft = p.length * p.width * p.quantity;
-                const sizeKey = `${p.length}ft x ${p.width}ft`;
+                const sizeKey = `${p.length}ft x ${p.width}ft (${p.category || 'Fresh'})`;
                 
                 grandTotalSqFt += sqft;
                 grandTotalPieces += p.quantity;
@@ -398,7 +398,7 @@
                 
                 return `
                     <li class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200 text-sm">
-                        <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
+                        <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft <span class="text-xs font-bold text-indigo-500 ml-1">(${p.category || 'Fresh'})</span></span>
                         <span class="font-bold text-indigo-600">${p.quantity} pcs</span>
                         <span class="text-gray-600 font-semibold">${sqft.toFixed(2)} ft²</span>
                     </li>
