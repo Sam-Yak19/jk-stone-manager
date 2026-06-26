@@ -293,7 +293,7 @@
             btn.innerHTML = 'Saving to Cloud... ☁️';
 
             // 🚀 THE BRIDGE: Send the data to your Node.js Server!
-            const response = await fetch('http://localhost:5000/api/dispatches', {
+            const response = await fetch('/api/dispatches', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sessionData)
@@ -328,7 +328,7 @@
         container.innerHTML = '<div class="col-span-full text-center py-8 text-indigo-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
         try {
-            const response = await fetch('http://localhost:5000/api/dispatches');
+            const response = await fetch('/api/dispatches');
             const result = await response.json();
             
             truckSessionArchive = result.data; 
@@ -459,7 +459,7 @@
         if(confirm("Are you sure you want to permanently delete this saved truck sheet from the cloud?")) {
             try {
                 // 🚀 THE BRIDGE: Send a DELETE request to your Node.js Server
-                const response = await fetch(`http://localhost:5000/api/dispatches/${id}`, {
+                const response = await fetch(`/api/dispatches/${id}`, {
                     method: 'DELETE'
                 });
 

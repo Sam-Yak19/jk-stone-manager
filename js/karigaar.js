@@ -367,7 +367,7 @@ window.archiveKarigaarSection = async function(sectionIndex) {
         
         try {
             // 🚀 THE BRIDGE: Send data to MongoDB
-            const response = await fetch('http://localhost:5000/api/karigaars', {
+            const response = await fetch('/api/karigaars', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -403,7 +403,7 @@ window.renderSavedKarigaarArchive = async function() {
     container.innerHTML = '<div class="text-center py-8 text-purple-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
     try {
-        const response = await fetch('http://localhost:5000/api/karigaars');
+        const response = await fetch('/api/karigaars');
         const result = await response.json();
         cloudKarigaarArchive = result.data;
 
@@ -487,7 +487,7 @@ window.renderSavedKarigaarArchive = async function() {
 window.deleteCloudKarigaarBlock = async function(id) {
     if(confirm("Permanently delete this Karigaar record from the cloud?")) {
         try {
-            const response = await fetch(`http://localhost:5000/api/karigaars/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/karigaars/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 renderSavedKarigaarArchive(); // Refresh the list
             } else {

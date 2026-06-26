@@ -12,7 +12,7 @@ async function getKarigaarRoster() {
 
     // Grab historical ones from the cloud
     try {
-        const response = await fetch('http://localhost:5000/api/karigaars');
+        const response = await fetch('/api/karigaars');
         if (response.ok) {
             const result = await response.json();
             result.data.forEach(block => roster.add(block.karigaarName));
@@ -41,7 +41,7 @@ window.loadDailyAttendance = async function() {
     // Fetch today's data from Cloud to see if we already marked them
     let savedRecords = [];
     try {
-        const response = await fetch(`http://localhost:5000/api/attendance/day/${dateStr}`);
+        const response = await fetch(`/api/attendance/day/${dateStr}`);
         if (response.ok) {
             const result = await response.json();
             if (result.data && result.data.records) {
@@ -98,7 +98,7 @@ window.saveDailyAttendance = async function() {
     if (records.length === 0) return alert("No attendance data to save.");
 
     try {
-        const response = await fetch('http://localhost:5000/api/attendance', {
+        const response = await fetch('/api/attendance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ date: dateStr, records: records })
@@ -126,7 +126,7 @@ window.generateMonthlyReport = async function() {
 
     try {
         // Fetch all days in that month
-        const response = await fetch(`http://localhost:5000/api/attendance/${monthStr}`);
+        const response = await fetch(`/api/attendance/${monthStr}`);
         const result = await response.json();
         const monthlyData = result.data;
 
