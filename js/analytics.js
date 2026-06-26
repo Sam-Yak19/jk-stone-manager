@@ -32,49 +32,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- CORE ANALYTICS FUNCTION ---
+//// --- CORE ANALYTICS FUNCTION ---
 
 function generateAnalytics() {
     const tableBody = document.getElementById('analyticsTableBody');
     if (!tableBody) return;
     tableBody.innerHTML = '';
 
-    if (typeof billArchive === 'undefined' || billArchive.length === 0) {
+    // 1. Fetch the new Credit Book Metadata (Opening Balances & Payments)
+    const ledgerMetadata = JSON.parse(localStorage.getItem('jk_ledger_metadata')) || {
+        openingBalances: {}, 
+        payments: {}         
+    };
+
+    // 2. Get all unique parties (from Bills, Opening Balances, and Payments)
+    let parties = new Set(billArchive.map(b => b.partyName));
+    Object.keys(ledgerMetadata.openingBalances).forEach(p => parties.add(p));
+    Object.keys(ledgerMetadata.payments).forEach(p => parties.add(p));
+    parties = [...parties];
+
+    if (parties.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 italic">No business data available yet. Start saving bills to see analytics.</td></tr>';
         return;
     }
 
-    // 1. Group data by Party
+    // 3. Calculate accurate totals for each party
     const partyStats = {};
 
-    billArchive.forEach(bill => {
-        const party = bill.partyName;
+    parties.forEach(party => {
+        // Get Opening Balance
+        const openingBalance = ledgerMetadata.openingBalances[party] || 0;
         
-        // Ensure legacy bills don't break the math
-        const grandTotal = bill.grandTotal || 0;
-        const amountPaid = bill.amountPaid || 0;
-        const balance = bill.balance !== undefined ? bill.balance : grandTotal;
+        // Get all Bills for this party
+        const partyBills = billArchive.filter(b => b.partyName === party);
+        const sumBills = partyBills.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
+        
+        // Get all Payments for this party
+        const partyPayments = ledgerMetadata.payments[party] || [];
+        const sumPayments = partyPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        if (!partyStats[party]) {
-            partyStats[party] = {
-                name: party,
-                billCount: 0,
-                totalBilled: 0,
-                totalPaid: 0,
-                totalBalance: 0
-            };
-        }
+        // MATHEMATICS EXACTLY LIKE THE LEDGER
+        const totalBilled = openingBalance + sumBills; // Total Charge (Dues)
+        const totalPaid = sumPayments;                 // Total Received (Credits)
+        const totalBalance = totalBilled - totalPaid;  // Net Balance
 
-        partyStats[party].billCount += 1;
-        partyStats[party].totalBilled += grandTotal;
-        partyStats[party].totalPaid += amountPaid;
-        partyStats[party].totalBalance += balance;
+        partyStats[party] = {
+            name: party,
+            billCount: partyBills.length,
+            totalBilled: totalBilled,
+            totalPaid: totalPaid,
+            totalBalance: totalBalance
+        };
     });
 
-    // 2. Convert object to an array and sort by Market Balance (Highest Debt first)
+    // 4. Convert object to an array and sort by Market Balance (Highest Debt first)
     const sortedParties = Object.values(partyStats).sort((a, b) => b.totalBalance - a.totalBalance);
 
-    // 3. Draw the Table
+    // 5. Draw the Table
     sortedParties.forEach(stats => {
         // Calculate Clearance Rate (%)
         let clearanceRate = 0;
@@ -95,7 +109,9 @@ function generateAnalytics() {
             <td class="px-6 py-4 whitespace-nowrap text-center text-gray-600">${stats.billCount}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-blue-600">₹${stats.totalBilled.toFixed(2)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-emerald-600">₹${stats.totalPaid.toFixed(2)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-red-600">₹${stats.totalBalance.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right font-bold ${stats.totalBalance > 0 ? 'text-red-600' : 'text-emerald-600'}">
+                ₹${Math.abs(stats.totalBalance).toFixed(2)} ${stats.totalBalance > 0 ? 'Due' : 'Adv'}
+            </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
                 <span class="px-3 py-1 text-sm font-bold rounded-full border ${badgeColor}">
                     ${clearanceRate.toFixed(1)}%

@@ -20,15 +20,67 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100 text-gray-800">
+    <!-- ================= AUTHENTICATION OVERLAY ================= -->
+    <div id="authPage" class="min-h-screen bg-slate-900 flex items-center justify-center p-4 fixed inset-0 z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-slate-900 mb-2">JkStonExports</h1>
+                <p class="text-gray-500" id="authSubtitle">Sign in to your account</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Username</label>
+                    <input type="text" id="loginUsername" required class="w-full border border-gray-300 rounded-lg px-4 py-3 mt-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Password</label>
+                    <input type="password" id="loginPassword" required class="w-full border border-gray-300 rounded-lg px-4 py-3 mt-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors text-lg">Login</button>
+                <p class="text-center text-sm text-gray-600 mt-4">New user? <button type="button" onclick="toggleAuthMode('register')" class="text-cyan-600 font-bold hover:underline">Create an account</button></p>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Company Name</label>
+                    <input type="text" id="regCompany" required placeholder="e.g. Ramesh Trading Co." class="w-full border border-gray-300 rounded-lg px-4 py-3 mt-1 focus:ring-cyan-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Choose a Username</label>
+                    <input type="text" id="regUsername" required class="w-full border border-gray-300 rounded-lg px-4 py-3 mt-1 focus:ring-cyan-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Create a Password</label>
+                    <input type="password" id="regPassword" required class="w-full border border-gray-300 rounded-lg px-4 py-3 mt-1 focus:ring-cyan-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors text-lg mt-2">Sign Up</button>
+                <p class="text-center text-sm text-gray-600 mt-4">Already have an account? <button type="button" onclick="toggleAuthMode('login')" class="text-cyan-600 font-bold hover:underline">Login here</button></p>
+            </form>
+        </div>
+    </div>
+    <!-- ================= END AUTHENTICATION OVERLAY ================= -->
+
 
     <!-- TIER 1: MAIN CATEGORIES -->
     <nav id="mainNav" class="bg-gray-900 shadow-md mb-0 no-print sticky top-0 z-50">
-        <div class="container mx-auto">
-            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2 text-white">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            
+            <div class="flex overflow-x-auto whitespace-nowrap hide-scroll px-2 text-white w-full md:w-auto">
                 <button id="mainTabTruck" class="py-4 px-6 block focus:outline-none border-b-4 font-bold border-indigo-500 text-indigo-400 transition-colors">1. Truck Loading & Billing</button>
                 <button id="mainTabKarigaar" class="py-4 px-6 block hover:text-purple-400 focus:outline-none border-b-4 font-bold border-transparent text-gray-300 transition-colors">2. Karigaar Work</button>
                 <button id="mainTabMine" class="py-4 px-6 block hover:text-cyan-400 focus:outline-none border-b-4 font-bold border-transparent text-gray-300 transition-colors">3. Mine Trucks</button>
             </div>
+
+            <div class="flex items-center gap-4 px-4 py-2 md:py-0 w-full md:w-auto justify-end border-t md:border-t-0 border-gray-700">
+                <span id="companyNameDisplay" class="font-bold text-gray-300 text-sm bg-gray-800 px-3 py-1 rounded shadow-inner"></span>
+                <button onclick="logoutUser()" class="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded font-bold transition-colors shadow-sm">
+                    Logout
+                </button>
+            </div>
+            
         </div>
     </nav>
 
@@ -458,7 +510,7 @@
                         <span class="font-medium text-gray-700 text-sm">GST Rate (%):</span>
                         <input type="number" id="gstRateInput" value="5" class="border border-gray-300 rounded-md w-20 px-2 py-1 text-right text-sm" oninput="calculateBill()">
                     </div>
-                </div>
+                </div>  
                 
                 <div id="taxBreakdown" class="text-right text-sm text-gray-600 font-semibold min-h-[20px]"></div>
 
@@ -539,39 +591,7 @@
         </div>
     </div>
 
-    <div id="paymentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md mx-4 relative">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Record Payment</h3>
-            
-            <div class="space-y-4 my-4">
-                <div class="flex justify-between text-gray-600">
-                    <span>Bill ID:</span>
-                    <span id="payBillId" class="font-mono text-sm"></span>
-                </div>
-                <div class="flex justify-between text-red-600 font-bold text-lg">
-                    <span>Current Balance:</span>
-                    <span id="payCurrentBalance">₹0.00</span>
-                </div>
-                
-                <hr>
-                
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Payment Date</label>
-                    <input type="date" id="paymentDateInput" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-emerald-500">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Amount Received (₹)</label>
-                    <input type="number" id="paymentAmountInput" min="1" step="any" class="w-full border border-gray-300 rounded-md px-3 py-2 text-xl font-bold text-green-700 focus:ring-emerald-500" placeholder="Enter amount">
-                </div>
-            </div>
-            
-            <div class="flex justify-end gap-3 mt-6">
-                <button id="cancelPaymentBtn" class="px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded-md hover:bg-gray-300">Cancel</button>
-                <button id="confirmPaymentBtn" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-md hover:bg-emerald-700">Save Payment</button>
-            </div>
-        </div>
-    </div>
+    
 
     <div id="analyticsPage" class="hidden container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
         <header class="mb-8 text-center relative">
@@ -616,21 +636,64 @@
                         <input type="date" id="mineDate" required class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700">Party (Mine/Supplier) Name</label>
-                        <input type="text" id="mineParty" required placeholder="e.g., Ramesh Mines" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
+                        <label class="block text-sm font-bold text-gray-700">Mine Owner Name</label>
+                        <input type="text" id="mineParty" required placeholder="e.g., Shanker ji" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Total Stones Received</label>
-                        <input type="number" id="mineStones" required min="1" placeholder="Number of stones" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500">
+                    
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700">Total Stones</label>
+                            <input type="number" id="mineStones" required min="1" placeholder="Qty" class="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700">Total Sq Ft</label>
+                            <input type="number" id="mineSqFt" required step="any" placeholder="Sq Ft" oninput="calculateMineTruckCost()" class="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700">Rate / Sq Ft</label>
+                            <input type="number" id="mineRate" required step="any" placeholder="₹ Rate" oninput="calculateMineTruckCost()" class="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-cyan-500">
+                        </div>
                     </div>
+
+                    <div class="bg-red-50 p-3 rounded-lg border border-red-100 flex justify-between items-center">
+                        <span class="text-sm text-red-800 font-bold">Total Truck Cost:</span>
+                        <span id="displayMineCost" class="text-xl font-extrabold text-red-600">₹0.00</span>
+                    </div>
+
                     <div>
-                        <label class="block text-sm font-bold text-gray-700">Notes (Sal, Tutan, Marr, etc.)</label>
-                        <textarea id="mineNotes" rows="2" placeholder="Any defects or yard notes..." class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-cyan-500"></textarea>
+                        <input type="text" id="mineNotes" placeholder="Optional Notes..." class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-cyan-500">
                     </div>
                     <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">
                         Save Truck Entry
                     </button>
                 </form>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-amber-500">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Supplier Ledger (Mine Owners)</h2>
+                    
+                    <div class="flex items-center gap-4 mb-6">
+                        <select id="mineLedgerPartySelector" onchange="renderMineLedger(this.value)" class="border border-gray-300 rounded-md px-4 py-2 font-bold focus:ring-amber-500 bg-amber-50 min-w-[250px]">
+                            <option value="">-- Select Mine Owner --</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-emerald-50 p-4 border border-emerald-200 rounded-lg shadow-sm mb-6">
+                        <h3 class="text-sm font-bold text-emerald-800 mb-2">Record Payment SENT to Mine Owner</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="date" id="minePayDate" class="border border-gray-300 px-2 py-2 rounded flex-1">
+                            <select id="minePayMethod" class="border border-gray-300 px-2 py-2 rounded flex-1">
+                                <option value="RTGS">RTGS / Bank</option>
+                                <option value="Cash">Cash</option>
+                            </select>
+                            <input type="number" id="minePayAmount" placeholder="₹ Amount Sent" class="border border-gray-300 px-2 py-2 rounded w-32 flex-1 font-bold text-green-700">
+                            <button onclick="recordMinePayment()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded font-bold transition">Send Payment</button>
+                        </div>
+                    </div>
+
+                    <div id="mineLedgerList" class="text-center py-6 text-gray-500 italic">Select a mine owner to view ledger.</div>
+                </div>
             </div>
 
             <div class="lg:col-span-2 space-y-6">
@@ -712,6 +775,8 @@
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/truckLoader.js"></script>
     <script src="js/karigaar.js"></script>

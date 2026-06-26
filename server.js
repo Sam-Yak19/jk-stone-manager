@@ -7,6 +7,10 @@ const Dispatch = require('./models/Dispatch');
 const Karigaar = require('./models/Karigaar');
 const MineTruck = require('./models/MineTruck');
 const Attendance = require('./models/Attendance');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+const path = require('path'); // Import the new User model
 
 // Set up the Express app
 const app = express();
@@ -32,6 +36,76 @@ app.get('/', (req, res) => {
 // ==========================================
 // REAL API ROUTES
 // ==========================================
+
+// ==========================================
+// AUTHENTICATION ROUTES (LOGIN / REGISTER)
+// ==========================================
+
+// Register a New User
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { companyName, username, password } = req.body;
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Username already taken.' });
+        }
+
+        // Encrypt the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Create the user
+        const newUser = new User({
+            companyName,
+            username,
+            password: hashedPassword
+        });
+
+        await newUser.save();
+        res.status(201).json({ success: true, message: 'Account created successfully!' });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Login an Existing User
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // Find the user
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        // Check the password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Invalid password.' });
+        }
+
+        // Generate a digital ID Card (Token) valid for 7 days
+        const token = jwt.sign(
+            { userId: user._id, companyName: user.companyName, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            token: token,
+            user: { id: user._id, companyName: user.companyName, username: user.username }
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 
 // 1. CREATE: Save a new truck dispatch from the frontend
 app.post('/api/dispatches', async (req, res) => {
@@ -190,6 +264,13 @@ app.get('/api/attendance/day/:date', async (req, res) => {
     }
 });
 
+// Serve all HTML, CSS, and JS files from the main folder
+app.use(express.static(__dirname));
+
+// If someone visits the main link, send them the index.html page
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Turn the server on
 const PORT = process.env.PORT || 5000;
