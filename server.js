@@ -29,9 +29,9 @@ mongoose.connect(process.env.MONGO_URI)
     });
 
 // A simple test route
-app.get('/', (req, res) => {
-    res.send('JK Stone Manager API is running!');
-});
+//app.get('/', (req, res) => {
+//   res.send('JK Stone Manager API is running!');
+//});
 
 // ==========================================
 // REAL API ROUTES
