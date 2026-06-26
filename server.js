@@ -268,9 +268,9 @@ app.get('/api/attendance/day/:date', async (req, res) => {
 app.use(express.static(__dirname));
 
 // If someone visits the main link, send them the index.html page
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+  app.get('/{*splat}', (req, res) => {
+      res.sendFile(path.join(__dirname, 'index.html'));
+  });
 
 // Turn the server on
 const PORT = process.env.PORT || 5000;
