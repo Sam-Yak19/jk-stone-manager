@@ -10,7 +10,7 @@ const CutStoneSchema = new mongoose.Schema({
 // Blueprint for a finalized Karigaar Work Sheet
 const KarigaarSchema = new mongoose.Schema({
     karigaarName: { type: String, required: true },
-    ownerId: { type: String, default: 'JK_Stones_HQ' }, // Company Tag
+    ownerId: { type: String, required: true }, // Company Tag
     sheetName: String,
     date: String,
     bigBlock: {

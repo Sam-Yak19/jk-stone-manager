@@ -279,11 +279,16 @@
         }
 
         // Package the exact data structure our MongoDB schema expects
+        // Grab the logged-in user details
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+
+        // Package the exact data structure our MongoDB schema expects
         const sessionData = {
             id: 'TRK-' + Date.now(),
             date: dateInput,
             party: partyInput,
-            layersData: JSON.parse(JSON.stringify(layers)) 
+            layersData: JSON.parse(JSON.stringify(layers)),
+            ownerId: currentUser.companyId // <-- Added Multi-Tenancy ID!
         };
 
         try {
@@ -328,7 +333,8 @@
         container.innerHTML = '<div class="col-span-full text-center py-8 text-indigo-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
         try {
-            const response = await fetch('/api/dispatches');
+            const currentUser = JSON.parse(localStorage.getItem('jk_user'));
+            const response = await fetch(`/api/dispatches?ownerId=${currentUser.companyId}`);
             const result = await response.json();
             
             truckSessionArchive = result.data; 

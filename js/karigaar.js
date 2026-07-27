@@ -349,6 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let cloudKarigaarArchive = [];
 
 // 1. The Finalize Function (Send to Node.js / MongoDB)
+// 1. The Finalize Function (Send to Node.js / MongoDB)
 window.archiveKarigaarSection = async function(sectionIndex) {
     if (!currentKarigaarName || !karigaarData[currentKarigaarName]) return;
     
@@ -356,13 +357,17 @@ window.archiveKarigaarSection = async function(sectionIndex) {
         
         const sectionToArchive = karigaarData[currentKarigaarName][sectionIndex];
         
+        // Grab the logged-in user details
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+        
         // Structure the data to match your new MongoDB Schema perfectly
         const payload = {
             karigaarName: currentKarigaarName,
             sheetName: sectionToArchive.name,
             date: new Date().toLocaleDateString('en-IN'),
             bigBlock: sectionToArchive.bigBlock,
-            products: sectionToArchive.products
+            products: sectionToArchive.products,
+            ownerId: currentUser.companyId // <-- Added Multi-Tenancy ID!
         };
         
         try {
@@ -395,6 +400,7 @@ window.archiveKarigaarSection = async function(sectionIndex) {
 }
 
 // 2. Fetch and Draw the Saved Karigaar Work from MongoDB
+// 2. Fetch and Draw the Saved Karigaar Work from MongoDB
 window.renderSavedKarigaarArchive = async function() {
     const container = document.getElementById('savedKarigaarList');
     const filterSelect = document.getElementById('savedKarigaarFilter');
@@ -403,7 +409,11 @@ window.renderSavedKarigaarArchive = async function() {
     container.innerHTML = '<div class="text-center py-8 text-purple-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
     try {
-        const response = await fetch('/api/karigaars');
+        // Grab the logged-in user details
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+        
+        // Fetch only THIS company's Karigaar work
+        const response = await fetch(`/api/karigaars?ownerId=${currentUser.companyId}`);
         const result = await response.json();
         cloudKarigaarArchive = result.data;
 

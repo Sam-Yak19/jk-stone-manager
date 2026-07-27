@@ -7,6 +7,7 @@ const Dispatch = require('./models/Dispatch');
 const Karigaar = require('./models/Karigaar');
 const MineTruck = require('./models/MineTruck');
 const Attendance = require('./models/Attendance');
+const Bill = require('./models/Bill');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
@@ -131,16 +132,14 @@ app.post('/api/dispatches', async (req, res) => {
 // 2. READ: Get all dispatches to show in the Bill Book / Dashboard
 app.get('/api/dispatches', async (req, res) => {
     try {
-        // Fetch all dispatches, sorted by newest first
-        const allDispatches = await Dispatch.find().sort({ createdAt: -1 });
-        
-        res.status(200).json({
-            success: true,
-            data: allDispatches
-        });
+        const { ownerId } = req.query; // Grab the logged-in user's ID
+        let query = {};
+        if (ownerId) query.ownerId = ownerId; // ONLY find trucks for this user!
+
+        const dispatches = await Dispatch.find(query).sort({ timestamp: -1 });
+        res.status(200).json({ success: true, data: dispatches });
     } catch (error) {
-        console.error("Fetch Error:", error);
-        res.status(500).json({ success: false, error: 'Server error fetching data' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -179,10 +178,14 @@ app.post('/api/karigaars', async (req, res) => {
 // Fetch all Karigaar Work Sheets
 app.get('/api/karigaars', async (req, res) => {
     try {
-        const allWork = await Karigaar.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: allWork });
+        const { ownerId } = req.query;
+        let query = {};
+        if (ownerId) query.ownerId = ownerId;
+
+        const karigaarWork = await Karigaar.find(query).sort({ timestamp: -1 });
+        res.status(200).json({ success: true, data: karigaarWork });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -214,10 +217,26 @@ app.post('/api/minetrucks', async (req, res) => {
 // Fetch all Mine Trucks
 app.get('/api/minetrucks', async (req, res) => {
     try {
-        const allTrucks = await MineTruck.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: allTrucks });
+        const { ownerId } = req.query;
+        let query = {};
+        if (ownerId) query.ownerId = ownerId;
+
+        const minetrucks = await minetrucks.find(query).sort({ timestamp: -1 });
+        res.status(200).json({ success: true, data: minetrucks });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// SAVE A NEW MINE TRUCK
+app.post('/api/minetrucks', async (req, res) => {
+    try {
+        const newMineTruck = new MineTruck(req.body);
+        const savedTruck = await newMineTruck.save();
+        res.status(201).json({ success: true, data: savedTruck });
+    } catch (error) {
+        console.error('Error saving mine truck:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -226,43 +245,115 @@ app.get('/api/minetrucks', async (req, res) => {
 // ATTENDANCE API ROUTES
 // ==========================================
 
-// Save or Update a Daily Register
+// ==========================================
+// 4. ATTENDANCE ROUTES
+// ==========================================
+
+// A. SAVE OR UPDATE DAILY ATTENDANCE
 app.post('/api/attendance', async (req, res) => {
     try {
-        const { date, records } = req.body;
-        // This will find the existing date and update it, or create a new one if it doesn't exist
-        const updatedRegister = await Attendance.findOneAndUpdate(
-            { date: date }, 
-            { date: date, records: records },
-            { new: true, upsert: true } // upsert = Create if not found
+        const { date, records, ownerId } = req.body;
+        
+        // Find if this specific company already saved attendance for this date.
+        // If yes, update it. If no, create a new one (upsert: true).
+        const updatedAttendance = await Attendance.findOneAndUpdate(
+            { date: date, ownerId: ownerId }, 
+            { records: records },
+            { new: true, upsert: true } 
         );
-        res.status(200).json({ success: true, data: updatedRegister });
+        
+        res.status(200).json({ success: true, data: updatedAttendance });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        console.error('Error saving attendance:', error);
+        res.status(500).json({ error: 'Server error saving attendance' });
     }
 });
 
-// Fetch Attendance for a specific Month (Format: YYYY-MM)
-app.get('/api/attendance/:month', async (req, res) => {
-    try {
-        const monthQuery = req.params.month; // e.g., "2026-06"
-        // Find all dates that start with this month
-        const monthlyData = await Attendance.find({ date: { $regex: `^${monthQuery}` } });
-        res.status(200).json({ success: true, data: monthlyData });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Fetch a single day's attendance (to load previous marks)
+// B. GET SINGLE DAY ATTENDANCE (To load the UI checkboxes)
 app.get('/api/attendance/day/:date', async (req, res) => {
     try {
-        const dailyData = await Attendance.findOne({ date: req.params.date });
-        res.status(200).json({ success: true, data: dailyData });
+        const { ownerId } = req.query;
+        // Find attendance matching BOTH the exact date and the company ID
+        const attendance = await Attendance.findOne({ date: req.params.date, ownerId: ownerId });
+        
+        res.status(200).json({ success: true, data: attendance });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ error: 'Server error' });
     }
 });
+
+// C. GET MONTHLY ATTENDANCE (For the Salary Report)
+app.get('/api/attendance/month/:monthStr', async (req, res) => {
+    try {
+        const { ownerId } = req.query;
+        
+        // Find all records where the date STARTS WITH the month (e.g., "2026-06") AND matches company
+        const attendance = await Attendance.find({ 
+            date: { $regex: '^' + req.params.monthStr },
+            ownerId: ownerId
+        });
+        
+        res.status(200).json({ success: true, data: attendance });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+
+// ==========================================
+// BILLING API ROUTES
+// ==========================================
+
+// 1. SAVE A NEW BILL
+app.post('/api/bills', async (req, res) => {
+    try {
+        const newBill = new Bill(req.body);
+        const savedBill = await newBill.save();
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Bill saved successfully', 
+            bill: savedBill 
+        });
+    } catch (error) {
+        console.error('Error saving bill:', error);
+        
+        // Check if it's a duplicate bill ID error
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'A bill with this ID already exists!' 
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error while saving the bill' 
+        });
+    }
+});
+
+// 2. FETCH BILLS (With optional filters for Analytics later)
+app.get('/api/bills', async (req, res) => {
+    try {
+        // We can filter by the user logged in (ownerId) or specific month
+        const { ownerId, monthKey } = req.query;
+        let query = {};
+        
+        if (ownerId) query.ownerId = ownerId;
+        if (monthKey) query.monthKey = monthKey;
+
+        // Fetch bills and sort them by newest first
+        const bills = await Bill.find(query).sort({ timestamp: -1 });
+        
+        res.status(200).json({ success: true, bills });
+    } catch (error) {
+        console.error('Error fetching bills:', error);
+        res.status(500).json({ success: false, message: 'Server error fetching bills' });
+    }
+});
+
+
 
 // Serve all HTML, CSS, and JS files from the main folder
 app.use(express.static(__dirname));
@@ -277,3 +368,25 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 }); 
+
+// Middleware to protect routes
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user; // This attaches the user's ID to the request!
+        next();
+    });
+};
+
+app.post('/api/bills', authenticateToken, async (req, res) => {
+    const newBill = new Bill({
+        ...req.body,
+        ownerId: req.user.userId // The security guard automatically stamps the owner!
+    });
+    await newBill.save();
+    res.json({ success: true });
+});

@@ -20,7 +20,7 @@ const DispatchSchema = new mongoose.Schema({
     id: String,        // Keeps your 'TRK-12345' format
     date: String,
     party: String,
-    ownerId: { type: String, default: 'JK_Stones_HQ' },
+    ownerId: { type: String, required: true }, // No more default!,
     layersData: [LayerSchema] // Embeds all the sheets/ups inside the truck!
 }, { 
     timestamps: true 

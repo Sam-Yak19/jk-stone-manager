@@ -7,9 +7,20 @@ function saveMineLedgerMetadata() {
     localStorage.setItem('jk_mine_ledger', JSON.stringify(mineLedgerMetadata));
 }
 
-function loadMineTruckArchive() {
-    const saved = localStorage.getItem('jkMineTruckArchive');
-    if (saved) mineTruckArchive = JSON.parse(saved);
+async function loadMineTruckArchive() {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+        
+        // Fetch only THIS company's mine trucks from the database
+        const response = await fetch(`/api/minetrucks?ownerId=${currentUser.companyId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            mineTruckArchive = result.data;
+        }
+    } catch (error) {
+        console.error("Failed to load Mine Trucks from cloud:", error);
+    }
 }
 
 function saveMineTruckArchive() {
@@ -45,10 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Form Submission (Saving a Truck)
+    // 2. Form Submission (Saving a Truck to Cloud)
     const addForm = document.getElementById('addMineTruckForm');
     if (addForm) {
-        addForm.addEventListener('submit', (e) => {
-            e.preventDefault(); // STOP THE PAGE RELOAD
+        addForm.addEventListener('submit', async (e) => { // <-- Made this async
+            e.preventDefault();
 
             const dateInput = document.getElementById('mineDate').value;
             const party = document.getElementById('mineParty').value.trim();
@@ -67,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateObj = new Date(dateInput);
             const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
             
+            const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+
             const newEntry = {
                 id: `MINE-${Date.now()}`,
                 date: dateObj.toLocaleDateString('en-IN'),
@@ -77,29 +91,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 sqft: sqft,
                 rate: rate,
                 cost: cost,
-                notes: notes
+                notes: notes,
+                ownerId: currentUser.companyId // <-- Added Multi-Tenancy ID!
             };
 
-            mineTruckArchive.push(newEntry);
-            saveMineTruckArchive();
-            
-            // Reset form
-            document.getElementById('mineStones').value = '';
-            document.getElementById('mineSqFt').value = '';
-            document.getElementById('mineRate').value = '';
-            if(notesElement) notesElement.value = '';
-            
-            const costDisplay = document.getElementById('displayMineCost');
-            if(costDisplay) costDisplay.textContent = '₹0.00';
-            
-            alert(`Successfully saved truck for ${party}!`);
-            
-            // Select this party automatically in the ledger dropdown so they can see the update instantly
-            const selector = document.getElementById('mineLedgerPartySelector');
-            if(selector) {
-                refreshMineLedgerParties(); 
-                selector.value = party;
-                renderMineLedger(party);
+            try {
+                // Send to MongoDB!
+                const response = await fetch('/api/minetrucks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEntry)
+                });
+                
+                if (response.ok) {
+                    mineTruckArchive.push(newEntry);
+                    // (Optional) keep local backup just in case:
+                    saveMineTruckArchive(); 
+                    
+                    // Reset form
+                    document.getElementById('mineStones').value = '';
+                    document.getElementById('mineSqFt').value = '';
+                    document.getElementById('mineRate').value = '';
+                    if(notesElement) notesElement.value = '';
+                    
+                    const costDisplay = document.getElementById('displayMineCost');
+                    if(costDisplay) costDisplay.textContent = '₹0.00';
+                    
+                    alert(`Successfully saved truck for ${party} to the database!`);
+                    
+                    const selector = document.getElementById('mineLedgerPartySelector');
+                    if(selector) {
+                        refreshMineLedgerParties(); 
+                        selector.value = party;
+                        renderMineLedger(party);
+                    }
+                } else {
+                    alert("Failed to save to database.");
+                }
+            } catch (error) {
+                alert("Server error. Please ensure backend is running.");
             }
         });
     }

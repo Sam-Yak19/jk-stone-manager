@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Print Controls
     document.getElementById('printBtn')?.addEventListener('click', () => window.print());
     document.getElementById('printBillBtn')?.addEventListener('click', () => window.print());
+    // Database Save Control
+    document.getElementById('saveBillBtn')?.addEventListener('click', () => window.saveFinalBill());
 
     // 3. Clear Application Data
     document.getElementById('startNewLoadBtn')?.addEventListener('click', () => {
@@ -296,3 +298,110 @@ function copyToClipboard(type) {
         alert("Failed to copy. Please check browser permissions.");
     });
 }
+
+async function finalizeBill() {
+    const token = localStorage.getItem('jk_auth_token'); // Get their digital ID
+    const billData = { /* gather your bill numbers here */ };
+
+    const response = await fetch('/api/bills', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Send the ID card to the server
+        },
+        body: JSON.stringify(billData)
+    });
+}
+
+// ==========================================
+// DATABASE SAVE FUNCTION
+// ==========================================
+
+window.saveFinalBill = async function() {
+    // 1. Check if a party is selected
+    const partyName = document.getElementById('partySelector')?.value;
+    if (!partyName || partyName === 'No parties added') {
+        alert('Please select a party name before saving the bill.');
+        return;
+    }
+
+    // 2. Gather Bill Settings
+    const billType = document.getElementById('billTypeSelector')?.value || 'kacha';
+    const saleLocation = document.getElementById('saleLocation')?.value || 'local';
+
+    // 3. Gather all stone items with their rates
+    const items = [];
+    document.querySelectorAll('#billTableBody tr').forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const size = cells[0].textContent.trim();
+        const qty = parseInt(cells[1].textContent.trim());
+        const sqft = parseFloat(cells[2].textContent.trim());
+        const rate = parseFloat(cells[3].querySelector('input').value) || 0;
+        const subtotal = parseFloat(cells[4].textContent.replace(/[^0-9.]/g, ''));
+
+        // Only save items that actually have a rate applied
+        if (qty > 0 && rate > 0) { 
+            items.push({ size, qty, sqft, rate, subtotal });
+        }
+    });
+
+    if (items.length === 0) {
+        alert('Please enter rates for the stones before saving.');
+        return;
+    }
+
+    // 4. Gather Totals
+    const stoneSubtotal = document.getElementById('billSubtotal').textContent;
+    const bharai = document.getElementById('billBharaiCharge').textContent;
+    const taxDetails = document.getElementById('taxBreakdown').innerText || 'No Tax';
+    const grandTotalText = document.getElementById('billGrandTotal').textContent;
+    const grandTotal = parseFloat(grandTotalText.replace(/[^0-9.]/g, ''));
+
+    // 5. Generate System Data (ID, Date, Month for Analytics)
+    const timestamp = Date.now();
+    const id = 'BILL-' + timestamp;
+    const dateObj = new Date();
+    const date = dateObj.toLocaleDateString('en-IN');
+    const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`; // e.g., "2026-06"
+    
+    // Get the logged-in user's company ID (fallback to HQ if not found)
+    const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+
+    // 6. Build the final payload to send to database
+    const billData = {
+        id, date, monthKey, timestamp,
+        partyName, ownerId: currentUser.companyId,
+        saleLocation, billType,
+        items,
+        stoneSubtotal, bharai, taxDetails, grandTotal,
+        balance: grandTotal // Initially, balance is the full amount since it's unpaid
+    };
+
+    // 7. Send to the API
+    try {
+        const btn = document.getElementById('saveBillBtn');
+        if(btn) btn.textContent = "Saving...";
+
+        const response = await fetch('/api/bills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(billData)
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Bill saved successfully to Database!');
+            if(btn) btn.textContent = "Saved ✓";
+            
+            // Optional: You can auto-print here by calling window.print()
+        } else {
+            alert('❌ Failed to save bill: ' + result.message);
+            if(btn) btn.textContent = "Save Bill";
+        }
+    } catch (error) {
+        console.error('Error saving bill:', error);
+        alert('Error connecting to the server. Check your internet connection.');
+        if(btn) btn.textContent = "Save Bill";
+    }
+};
