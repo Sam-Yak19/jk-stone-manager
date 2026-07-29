@@ -32,7 +32,7 @@ function saveKarigaarData() {
 // --- 2. UPDATE MULTI STONES & CALCULATE TOTALS ---
 
 window.calculateGunFeet = function() {
-    if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) return;
+    if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) return 0;
 
     let sumVolumes = 0;
     const stoneRows = document.querySelectorAll('.stone-row');
@@ -50,28 +50,36 @@ window.calculateGunFeet = function() {
     const displayEl = document.getElementById('displayTotalGunFeet');
     if (displayEl) displayEl.innerText = totalGunFeet;
 
-    // Auto-save to local state (Replacing the old updateBigBlock behavior)
+    // Auto-save to local state
     const select = document.getElementById('karigaarTargetSheetSelect');
     const sectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
-    const numberOfStones = parseInt(document.getElementById('numberOfStones').value) || 1;
     
-    karigaarData[currentKarigaarName][sectionIndex].multiStones = {
-        numberOfStones,
-        stones: stonesArray,
-        totalGunFeet
-    };
+    // FIXED: Instead of looking for the deleted dropdown, we just count the stone groups visually on screen
+    const numGroups = document.querySelectorAll('.stone-group').length || 1;
     
-    saveKarigaarData();
-    renderKarigaarLayers(); 
+    // Ensure the section actually exists before saving to prevent crashes
+    if (karigaarData[currentKarigaarName][sectionIndex]) {
+        karigaarData[currentKarigaarName][sectionIndex].multiStones = {
+            numberOfStones: numGroups,
+            stones: stonesArray,
+            totalGunFeet: totalGunFeet
+        };
+        saveKarigaarData();
+        renderKarigaarLayers(); 
+    }
+    
     return totalGunFeet;
 };
 
 // --- 3. UI REFRESH FUNCTIONS ---
 
-// NEW: Keeps the Target Sheet Dropdown updated
+// NEW: Keeps the Target Sheet Dropdown updated without losing current selection
 function updateKarigaarTargetDropdown() {
     const select = document.getElementById('karigaarTargetSheetSelect');
     if (!select) return;
+
+    // 1. Remember the current selection before we clear the dropdown
+    const previousSelection = select.value;
 
     select.innerHTML = ''; // Clear old
     
@@ -83,11 +91,15 @@ function updateKarigaarTargetDropdown() {
             select.appendChild(option);
         });
         
-        // Auto-select the newest sheet
-        select.value = karigaarData[currentKarigaarName].length - 1;
+        // 2. Only go to the newest sheet if there was no previous selection. 
+        // Otherwise, stay exactly where the user is working!
+        if (previousSelection && karigaarData[currentKarigaarName][previousSelection]) {
+            select.value = previousSelection;
+        } else {
+            select.value = karigaarData[currentKarigaarName].length - 1;
+        }
         
-        // Auto-fill the Big Block inputs based on the selected sheet
-// Auto-fill the multi-stone inputs based on the selected sheet
+        // Auto-fill the multi-stone inputs based on the selected sheet
         updateMultiStoneInputs(select.value);
     } else {
         document.getElementById('dynamicStonesContainer').innerHTML = '';
@@ -98,24 +110,29 @@ function updateKarigaarTargetDropdown() {
 // Helper to fill the multi-stone boxes when you switch target sheets
 function updateMultiStoneInputs(index) {
     if (!karigaarData[currentKarigaarName] || !karigaarData[currentKarigaarName][index]) return;
-    const multiData = karigaarData[currentKarigaarName][index].multiStones || { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 };
-    
-    const select = document.getElementById('numberOfStones');
-    if (select) select.value = multiData.numberOfStones || 1;
+    const multiData = karigaarData[currentKarigaarName][index].multiStones || { numberOfStones: 1, stones: [], totalGunFeet: 0 };
     
     const container = document.getElementById('dynamicStonesContainer');
     container.innerHTML = '';
+    stoneCounter = 0; // Reset counter
     
-    multiData.stones.forEach((stone, i) => {
-        const row = document.createElement('div');
-        row.className = 'stone-row grid grid-cols-3 gap-2'; 
-        row.innerHTML = `
-            <input type="number" class="stone-l w-full px-2 py-1 rounded border border-purple-200" placeholder="L ${i+1}" value="${stone.l || ''}" oninput="calculateGunFeet()">
-            <input type="number" class="stone-w w-full px-2 py-1 rounded border border-purple-200" placeholder="W ${i+1}" value="${stone.w || ''}" oninput="calculateGunFeet()">
-            <input type="number" class="stone-h w-full px-2 py-1 rounded border border-purple-200" placeholder="H ${i+1}" value="${stone.h || ''}" oninput="calculateGunFeet()">
-        `;
-        container.appendChild(row);
-    });
+    // Draw the saved stones
+    if (multiData.stones && multiData.stones.length > 0) {
+        multiData.stones.forEach((stone) => {
+            addNewStoneGroup();
+            // Fill in the data for the newly created stone group
+            const group = document.getElementById(`stone-group-${stoneCounter}`);
+            const inputs = group.querySelectorAll('.stone-row input');
+            if (inputs.length >= 3) {
+                inputs[0].value = stone.l || '';
+                inputs[1].value = stone.w || '';
+                inputs[2].value = stone.h || '';
+            }
+        });
+    } else {
+        // Always start with at least one empty stone group
+        addNewStoneGroup();
+    }
 
     const displayEl = document.getElementById('displayTotalGunFeet');
     if (displayEl) displayEl.innerText = multiData.totalGunFeet || 0;
@@ -314,10 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const number = karigaarData[currentKarigaarName].length + 1;
             karigaarData[currentKarigaarName].push({ name: `Work Sheet ${number}`, products: [], multiStones: { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 } });
             saveKarigaarData();
+            
+            // Force the dropdown to forget its previous place so it jumps to the new sheet
+            const select = document.getElementById('karigaarTargetSheetSelect');
+            if(select) select.value = ""; 
+            
             refreshKarigaarUI();
         });
     }
-
     // Add stones to a Karigaar's CURRENT sheet
     if (addKarigaarProductForm) {
         addKarigaarProductForm.addEventListener('submit', (e) => {
@@ -389,17 +410,18 @@ window.archiveKarigaarSection = async function(sectionIndex) {
         
         const sectionToArchive = karigaarData[currentKarigaarName][sectionIndex];
         
-        // Grab the logged-in user details
-        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+       // FIXED: Grab the logged-in user details using the correct properties from your Auth system
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || {};
+        const actualOwnerId = currentUser.id || currentUser.companyName || 'JK_Stones_HQ';
         
-        // Structure the data to match your new MongoDB Schema perfectly
+        // Structure the data to match your MongoDB Schema perfectly
         const payload = {
             karigaarName: currentKarigaarName,
             sheetName: sectionToArchive.name,
             date: new Date().toLocaleDateString('en-IN'),
-            multiStones: sectionToArchive.multiStones, // Updated to new format
+            multiStones: sectionToArchive.multiStones,
             products: sectionToArchive.products,
-            ownerId: currentUser.companyId 
+            ownerId: actualOwnerId // Uses the correct ID now!
         };
         
         try {
@@ -441,11 +463,12 @@ window.renderSavedKarigaarArchive = async function() {
     container.innerHTML = '<div class="text-center py-8 text-purple-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
     try {
-// Grab the logged-in user details
-        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
+// FIXED: Grab the logged-in user details using the correct properties
+        const currentUser = JSON.parse(localStorage.getItem('jk_user')) || {};
+        const actualOwnerId = currentUser.id || currentUser.companyName || 'JK_Stones_HQ';
         
         // Fetch only THIS company's Karigaar work
-        const response = await fetch(`/api/karigaars?ownerId=${currentUser.companyId}`);
+        const response = await fetch(`/api/karigaars?ownerId=${actualOwnerId}`);
         const result = await response.json();
 
         // NEW: Check if the backend actually succeeded before trying to render!
@@ -511,8 +534,8 @@ window.renderSavedKarigaarArchive = async function() {
 
                     <div class="flex justify-between items-center bg-gray-900 text-white p-3 rounded-lg">
                         <div>
-                            <p class="text-xs text-gray-400 uppercase font-bold">Total Yield</p>
-                            <p class="text-xl font-bold">${yieldVal} <span class="text-xs text-gray-300">ft²/ft³</span></p>
+                            <p class="text-xs text-gray-400 uppercase font-bold">Total Gun Feet</p>
+                            <p class="text-xl font-bold text-purple-400">${totalGunFeet}</p>
                         </div>
                         <div class="text-right">
                             <p class="text-xs text-gray-400 uppercase font-bold">Total SqFt</p>
@@ -562,21 +585,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Function to dynamically generate input rows
-window.generateStoneInputs = function() {
-    const num = parseInt(document.getElementById('numberOfStones').value) || 1;
-    const container = document.getElementById('dynamicStonesContainer');
-    container.innerHTML = ''; 
+let stoneCounter = 0;
 
-    for (let i = 0; i < num; i++) {
-        const row = document.createElement('div');
-        row.className = 'stone-row grid grid-cols-3 gap-2'; 
-        row.innerHTML = `
-            <input type="number" class="stone-l w-full px-2 py-1 rounded border border-purple-200" placeholder="L ${i+1}" oninput="calculateGunFeet()">
-            <input type="number" class="stone-w w-full px-2 py-1 rounded border border-purple-200" placeholder="W ${i+1}" oninput="calculateGunFeet()">
-            <input type="number" class="stone-h w-full px-2 py-1 rounded border border-purple-200" placeholder="H ${i+1}" oninput="calculateGunFeet()">
-        `;
-        container.appendChild(row);
+window.addNewStoneGroup = function() {
+    stoneCounter++;
+    const container = document.getElementById('dynamicStonesContainer');
+    
+    const stoneGroup = document.createElement('div');
+    stoneGroup.className = 'stone-group bg-white p-3 rounded-lg border border-purple-200 shadow-sm relative';
+    stoneGroup.id = `stone-group-${stoneCounter}`;
+    
+    stoneGroup.innerHTML = `
+        <div class="flex justify-between items-center mb-3 border-b pb-2">
+            <span class="font-bold text-gray-800 text-sm">Stone ${stoneCounter}</span>
+            <div class="flex gap-2">
+                <button type="button" onclick="addSubPart('${stoneGroup.id}')" class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-100 transition-colors">+ Add Part</button>
+                <button type="button" onclick="removeStoneGroup('${stoneGroup.id}')" class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded border border-red-200 hover:bg-red-100 transition-colors">Delete</button>
+            </div>
+        </div>
+        
+        <div class="sub-parts-container space-y-2">
+            <div class="stone-row flex gap-2">
+                <input type="number" class="stone-l w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="L" oninput="calculateGunFeet()">
+                <input type="number" class="stone-w w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="W" oninput="calculateGunFeet()">
+                <input type="number" class="stone-h w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="H" oninput="calculateGunFeet()">
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(stoneGroup);
+    calculateGunFeet();
+}
+
+window.addSubPart = function(groupId) {
+    const group = document.getElementById(groupId);
+    const partsContainer = group.querySelector('.sub-parts-container');
+    
+    const row = document.createElement('div');
+    row.className = 'stone-row flex gap-2 relative items-center mt-2';
+    row.innerHTML = `
+        <span class="text-gray-400 font-bold text-lg mr-1 pl-1">↳</span>
+        <input type="number" class="stone-l w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="L" oninput="calculateGunFeet()">
+        <input type="number" class="stone-w w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="W" oninput="calculateGunFeet()">
+        <input type="number" class="stone-h w-full px-2 py-1 rounded border border-gray-300 focus:ring-purple-500" placeholder="H" oninput="calculateGunFeet()">
+        <button type="button" onclick="this.parentElement.remove(); calculateGunFeet();" class="text-red-500 hover:text-red-700 font-black px-2 ml-1 text-lg leading-none">&times;</button>
+    `;
+    
+    partsContainer.appendChild(row);
+}
+
+window.removeStoneGroup = function(groupId) {
+    const group = document.getElementById(groupId);
+    if (group) {
+        group.remove();
+        calculateGunFeet();
     }
-    calculateGunFeet(); 
 }
