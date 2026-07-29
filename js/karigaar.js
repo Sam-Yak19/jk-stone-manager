@@ -29,24 +29,41 @@ function saveKarigaarData() {
 
 // --- 2. UPDATE BIG BLOCK (TARGETS THE DROPDOWN) ---
 
-window.updateBigBlock = function() {
+// --- 2. UPDATE MULTI STONES & CALCULATE TOTALS ---
+
+window.calculateGunFeet = function() {
     if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) return;
 
-    // Grab the target sheet from the dropdown!
+    let sumVolumes = 0;
+    const stoneRows = document.querySelectorAll('.stone-row');
+    const stonesArray = [];
+    
+    stoneRows.forEach(row => {
+        const l = parseFloat(row.querySelector('.stone-l').value) || 0;
+        const w = parseFloat(row.querySelector('.stone-w').value) || 0;
+        const h = parseFloat(row.querySelector('.stone-h').value) || 0;
+        stonesArray.push({l, w, h});
+        sumVolumes += (l * w * h);
+    });
+
+    const totalGunFeet = Math.floor(sumVolumes / 12);
+    const displayEl = document.getElementById('displayTotalGunFeet');
+    if (displayEl) displayEl.innerText = totalGunFeet;
+
+    // Auto-save to local state (Replacing the old updateBigBlock behavior)
     const select = document.getElementById('karigaarTargetSheetSelect');
     const sectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
-
-    const l = parseFloat(document.getElementById('bigBlockL').value) || 0;
-    const w = parseFloat(document.getElementById('bigBlockW').value) || 0;
-    const h = parseFloat(document.getElementById('bigBlockH').value) || 0;
+    const numberOfStones = parseInt(document.getElementById('numberOfStones').value) || 1;
     
-    if (!karigaarData[currentKarigaarName][sectionIndex].bigBlock) {
-        karigaarData[currentKarigaarName][sectionIndex].bigBlock = {l:0, w:0, h:0};
-    }
+    karigaarData[currentKarigaarName][sectionIndex].multiStones = {
+        numberOfStones,
+        stones: stonesArray,
+        totalGunFeet
+    };
     
-    karigaarData[currentKarigaarName][sectionIndex].bigBlock = {l, w, h};
     saveKarigaarData();
     renderKarigaarLayers(); 
+    return totalGunFeet;
 };
 
 // --- 3. UI REFRESH FUNCTIONS ---
@@ -70,21 +87,38 @@ function updateKarigaarTargetDropdown() {
         select.value = karigaarData[currentKarigaarName].length - 1;
         
         // Auto-fill the Big Block inputs based on the selected sheet
-        updateBigBlockInputs(select.value);
+// Auto-fill the multi-stone inputs based on the selected sheet
+        updateMultiStoneInputs(select.value);
     } else {
-        document.getElementById('bigBlockL').value = '';
-        document.getElementById('bigBlockW').value = '';
-        document.getElementById('bigBlockH').value = '';
+        document.getElementById('dynamicStonesContainer').innerHTML = '';
+        document.getElementById('displayTotalGunFeet').innerText = '0';
     }
 }
 
-// Helper to fill the Big Block boxes when you switch target sheets
-function updateBigBlockInputs(index) {
+// Helper to fill the multi-stone boxes when you switch target sheets
+function updateMultiStoneInputs(index) {
     if (!karigaarData[currentKarigaarName] || !karigaarData[currentKarigaarName][index]) return;
-    const bigBlock = karigaarData[currentKarigaarName][index].bigBlock || {l:'', w:'', h:''};
-    document.getElementById('bigBlockL').value = bigBlock.l || '';
-    document.getElementById('bigBlockW').value = bigBlock.w || '';
-    document.getElementById('bigBlockH').value = bigBlock.h || '';
+    const multiData = karigaarData[currentKarigaarName][index].multiStones || { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 };
+    
+    const select = document.getElementById('numberOfStones');
+    if (select) select.value = multiData.numberOfStones || 1;
+    
+    const container = document.getElementById('dynamicStonesContainer');
+    container.innerHTML = '';
+    
+    multiData.stones.forEach((stone, i) => {
+        const row = document.createElement('div');
+        row.className = 'stone-row grid grid-cols-3 gap-2'; 
+        row.innerHTML = `
+            <input type="number" class="stone-l w-full px-2 py-1 rounded border border-purple-200" placeholder="L ${i+1}" value="${stone.l || ''}" oninput="calculateGunFeet()">
+            <input type="number" class="stone-w w-full px-2 py-1 rounded border border-purple-200" placeholder="W ${i+1}" value="${stone.w || ''}" oninput="calculateGunFeet()">
+            <input type="number" class="stone-h w-full px-2 py-1 rounded border border-purple-200" placeholder="H ${i+1}" value="${stone.h || ''}" oninput="calculateGunFeet()">
+        `;
+        container.appendChild(row);
+    });
+
+    const displayEl = document.getElementById('displayTotalGunFeet');
+    if (displayEl) displayEl.innerText = multiData.totalGunFeet || 0;
 }
 
 function refreshKarigaarUI() {
@@ -124,15 +158,13 @@ function renderKarigaarLayers() {
         const originalIndex = karigaarData[currentKarigaarName].indexOf(layer);
         
         // --- YIELD MATH ---
+        // --- YIELD MATH ---
         const totalSqFt = layer.products.reduce((sum, p) => sum + (p.length * p.width * p.quantity), 0);
-        const bigBlock = layer.bigBlock || {l:0, w:0, h:0};
+        const multi = layer.multiStones || { numberOfStones: 1, stones: [], totalGunFeet: 0 };
         
         let yieldVal = "0.00";
-        if (bigBlock.l > 0 && bigBlock.w > 0 && bigBlock.h > 0) {
-            // New Formula: var1 = (l * b * h) / 12
-            const var1 = (bigBlock.l * bigBlock.w * bigBlock.h) / 12;
-            // average = totalSquareFeet / var1
-            yieldVal = (totalSqFt / var1).toFixed(2);
+        if (multi.totalGunFeet > 0) {
+            yieldVal = (totalSqFt / multi.totalGunFeet).toFixed(2);
         }
 
         const div = document.createElement('div');
@@ -149,7 +181,7 @@ function renderKarigaarLayers() {
                         </div>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-xs text-gray-500">Block: ${bigBlock.l}x${bigBlock.w}x${bigBlock.h} | Total SqFt: ${totalSqFt.toFixed(2)}</span>
+                    <span class="text-xs text-gray-500">Stones: ${multi.numberOfStones} | Total Gun Feet: ${multi.totalGunFeet} | Total SqFt: ${totalSqFt.toFixed(2)}</span>
                     <span class="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded">Yield: ${yieldVal} ft²/ft³</span>
                 </div>
             </div>
@@ -238,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = newKarigaarName.value.trim();
             
             if (name && !karigaarData[name]) {
-                karigaarData[name] = [{ name: "Work Sheet 1", products: [], bigBlock: {l:0, w:0, h:0} }];
+                karigaarData[name] = [{ name: "Work Sheet 1", products: [], multiStones: { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 } }];
                 currentKarigaarName = name;
                 saveKarigaarData();
                 refreshKarigaarUI();
@@ -280,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentKarigaarName || !karigaarData[currentKarigaarName]) return;
             
             const number = karigaarData[currentKarigaarName].length + 1;
-            karigaarData[currentKarigaarName].push({ name: `Work Sheet ${number}`, products: [], bigBlock: {l:0, w:0, h:0} });
+            karigaarData[currentKarigaarName].push({ name: `Work Sheet ${number}`, products: [], multiStones: { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 } });
             saveKarigaarData();
             refreshKarigaarUI();
         });
@@ -297,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Auto-create a Work Sheet if none exist
             if (karigaarData[currentKarigaarName].length === 0) {
-                karigaarData[currentKarigaarName].push({ name: "Work Sheet 1", products: [], bigBlock: {l:0, w:0, h:0} });
+                karigaarData[currentKarigaarName].push({ name: "Work Sheet 1", products: [], multiStones: { numberOfStones: 1, stones: [{l:'', w:'', h:''}], totalGunFeet: 0 } });
             }
 
             const qty = parseInt(document.getElementById('karigaarProductQuantity').value);
@@ -331,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const karigaarTargetSheetSelect = document.getElementById('karigaarTargetSheetSelect');
     if (karigaarTargetSheetSelect) {
         karigaarTargetSheetSelect.addEventListener('change', (e) => {
-            updateBigBlockInputs(e.target.value);
+            updateMultiStoneInputs(e.target.value);
         });
     }
 
@@ -365,9 +397,9 @@ window.archiveKarigaarSection = async function(sectionIndex) {
             karigaarName: currentKarigaarName,
             sheetName: sectionToArchive.name,
             date: new Date().toLocaleDateString('en-IN'),
-            bigBlock: sectionToArchive.bigBlock,
+            multiStones: sectionToArchive.multiStones, // Updated to new format
             products: sectionToArchive.products,
-            ownerId: currentUser.companyId // <-- Added Multi-Tenancy ID!
+            ownerId: currentUser.companyId 
         };
         
         try {
@@ -409,13 +441,22 @@ window.renderSavedKarigaarArchive = async function() {
     container.innerHTML = '<div class="text-center py-8 text-purple-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
     try {
-        // Grab the logged-in user details
+// Grab the logged-in user details
         const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
         
         // Fetch only THIS company's Karigaar work
         const response = await fetch(`/api/karigaars?ownerId=${currentUser.companyId}`);
         const result = await response.json();
-        cloudKarigaarArchive = result.data;
+
+        // NEW: Check if the backend actually succeeded before trying to render!
+        if (!result.success) {
+            console.error("Backend rejected the request:", result.message);
+            container.innerHTML = `<div class="text-center py-8 text-red-500 font-bold">❌ Database Error: ${result.message}</div>`;
+            return;
+        }
+
+        // Add fallback to empty array to prevent crashes
+        cloudKarigaarArchive = result.data || []; 
 
         if (cloudKarigaarArchive.length === 0) {
             container.innerHTML = `<div class="text-center py-10 bg-white rounded-xl shadow-sm text-gray-500 italic">No finalized Karigaar work found in the database.</div>`;
@@ -442,8 +483,8 @@ window.renderSavedKarigaarArchive = async function() {
         filteredData.forEach(block => {
             // Calculate Totals for this block
             const totalSqFt = block.products.reduce((sum, p) => sum + (p.length * p.width * p.quantity), 0);
-            const volume = (block.bigBlock.l * block.bigBlock.w * block.bigBlock.h) / 12;
-            const yieldVal = (volume > 0) ? (totalSqFt / volume).toFixed(2) : "0.00";
+            const totalGunFeet = block.multiStones ? block.multiStones.totalGunFeet : 0;
+            const yieldVal = (totalGunFeet > 0) ? (totalSqFt / totalGunFeet).toFixed(2) : "0.00";
 
             const card = document.createElement('div');
             card.className = 'bg-white p-6 rounded-2xl shadow-md border border-purple-100 flex flex-col md:flex-row gap-6 items-start';
@@ -461,9 +502,11 @@ window.renderSavedKarigaarArchive = async function() {
                     <h3 class="text-2xl font-black text-purple-900">${block.karigaarName}</h3>
                     <p class="text-sm text-purple-600 font-bold mb-3">📅 ${block.date} | ${block.sheetName}</p>
                     
-                    <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 mb-4">
-                        <p class="text-xs text-purple-800 uppercase font-bold tracking-wider mb-1">Block Dimensions</p>
-                        <p class="text-lg font-bold text-gray-800">${block.bigBlock.l} <span class="text-sm font-normal text-gray-500">x</span> ${block.bigBlock.w} <span class="text-sm font-normal text-gray-500">x</span> ${block.bigBlock.h}</p>
+                    <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 mb-4 max-h-40 overflow-y-auto">
+                        <p class="text-xs text-purple-800 uppercase font-bold tracking-wider mb-1">Stone Dimensions (${block.multiStones?.numberOfStones || 0} Stones)</p>
+                        <ul class="text-sm font-medium text-gray-800 space-y-1">
+                            ${block.multiStones?.stones.map((s, i) => `<li>Stone ${i+1}: ${s.l || 0} x ${s.w || 0} x ${s.h || 0}</li>`).join('') || '<li>No stones attached</li>'}
+                        </ul>
                     </div>
 
                     <div class="flex justify-between items-center bg-gray-900 text-white p-3 rounded-lg">
@@ -518,3 +561,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Function to dynamically generate input rows
+window.generateStoneInputs = function() {
+    const num = parseInt(document.getElementById('numberOfStones').value) || 1;
+    const container = document.getElementById('dynamicStonesContainer');
+    container.innerHTML = ''; 
+
+    for (let i = 0; i < num; i++) {
+        const row = document.createElement('div');
+        row.className = 'stone-row grid grid-cols-3 gap-2'; 
+        row.innerHTML = `
+            <input type="number" class="stone-l w-full px-2 py-1 rounded border border-purple-200" placeholder="L ${i+1}" oninput="calculateGunFeet()">
+            <input type="number" class="stone-w w-full px-2 py-1 rounded border border-purple-200" placeholder="W ${i+1}" oninput="calculateGunFeet()">
+            <input type="number" class="stone-h w-full px-2 py-1 rounded border border-purple-200" placeholder="H ${i+1}" oninput="calculateGunFeet()">
+        `;
+        container.appendChild(row);
+    }
+    calculateGunFeet(); 
+}

@@ -333,11 +333,20 @@
         container.innerHTML = '<div class="col-span-full text-center py-8 text-indigo-600 font-bold animate-pulse">☁️ Fetching live data from MongoDB...</div>';
 
         try {
-            const currentUser = JSON.parse(localStorage.getItem('jk_user'));
+            // FIXED: Added the fallback so it doesn't crash if jk_user is missing
+            const currentUser = JSON.parse(localStorage.getItem('jk_user')) || { companyId: 'JK_Stones_HQ' };
             const response = await fetch(`/api/dispatches?ownerId=${currentUser.companyId}`);
             const result = await response.json();
             
-            truckSessionArchive = result.data; 
+            // FIXED: Check if the backend actually succeeded!
+            if (!result.success) {
+                console.error("Backend rejected the request:", result.message);
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-red-500 font-bold">❌ Database Error: ${result.message}</div>`;
+                return;
+            }
+
+            // FIXED: Fallback to empty array to prevent length crashes
+            truckSessionArchive = result.data || []; 
 
             if (truckSessionArchive.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 italic">No saved trucks found in the cloud database.</div>`;

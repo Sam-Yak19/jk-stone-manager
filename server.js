@@ -136,10 +136,12 @@ app.get('/api/dispatches', async (req, res) => {
         let query = {};
         if (ownerId) query.ownerId = ownerId; // ONLY find trucks for this user!
 
-        const dispatches = await Dispatch.find(query).sort({ timestamp: -1 });
+        // FIXED: Changed 'timestamp' to 'createdAt' and added logging
+        const dispatches = await Dispatch.find(query).sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: dispatches });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error("CRITICAL ERROR IN GET /api/dispatches:", error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 });
 
@@ -182,10 +184,13 @@ app.get('/api/karigaars', async (req, res) => {
         let query = {};
         if (ownerId) query.ownerId = ownerId;
 
-        const karigaarWork = await Karigaar.find(query).sort({ timestamp: -1 });
+        // Changed 'timestamp' to 'createdAt' to match Mongoose defaults
+        const karigaarWork = await Karigaar.find(query).sort({ createdAt: -1 }); 
         res.status(200).json({ success: true, data: karigaarWork });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
+        // ADDED LOGGING so we can see what actually breaks
+        console.error("CRITICAL ERROR IN GET /api/karigaars:", error); 
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 });
 
@@ -221,7 +226,7 @@ app.get('/api/minetrucks', async (req, res) => {
         let query = {};
         if (ownerId) query.ownerId = ownerId;
 
-        const minetrucks = await minetrucks.find(query).sort({ timestamp: -1 });
+        const trucksData = await MineTruck.find(query).sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: minetrucks });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });

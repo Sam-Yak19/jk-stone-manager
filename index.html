@@ -250,16 +250,40 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1">
                 <div class="bg-white p-6 rounded-2xl shadow-lg sticky top-8">
-                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">Manage Work</h2>
-                    
-                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-6">
-                        <h3 class="font-bold text-purple-900 mb-2 text-sm uppercase">Big Block (LxWxH)</h3>
-                            <div class="grid grid-cols-3 gap-2">
-                                <input type="number" id="bigBlockL" onchange="updateBigBlock()" placeholder="L" class="w-full px-2 py-1 rounded border border-purple-200">
-                                <input type="number" id="bigBlockW" onchange="updateBigBlock()" placeholder="W" class="w-full px-2 py-1 rounded border border-purple-200">
-                                <input type="number" id="bigBlockH" onchange="updateBigBlock()" placeholder="H" class="w-full px-2 py-1 rounded border border-purple-200">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">Manage Work</h2>                    
+                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-6">
+                            <div class="mb-4">
+                                <label for="numberOfStones" class="block text-sm font-bold text-purple-900 mb-1 uppercase">Number of Stones</label>
+                                <select id="numberOfStones" onchange="generateStoneInputs()" class="block w-full px-3 py-2 border border-purple-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                    <option value="1" selected>1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                </select>
                             </div>
-                    </div>
+
+                            <!-- Dynamic Container -->
+                            <div id="dynamicStonesContainer" class="space-y-2">
+                                <!-- Initial single stone input row -->
+                                <div class="stone-row grid grid-cols-3 gap-2">
+                                    <input type="number" class="stone-l w-full px-2 py-1 rounded border border-purple-200" placeholder="L 1" oninput="calculateGunFeet()">
+                                    <input type="number" class="stone-w w-full px-2 py-1 rounded border border-purple-200" placeholder="W 1" oninput="calculateGunFeet()">
+                                    <input type="number" class="stone-h w-full px-2 py-1 rounded border border-purple-200" placeholder="H 1" oninput="calculateGunFeet()">
+                                </div>
+                            </div>
+
+                            <!-- Live Total Gun Feet Display -->
+                            <div class="mt-4 pt-3 border-t border-purple-200 flex justify-between items-center">
+                                <span class="text-sm font-bold text-gray-700">Total Gun Feet:</span>
+                                <span id="displayTotalGunFeet" class="text-2xl font-bold text-purple-700">0</span>
+                            </div>
+                        </div>
 
                     <div class="my-4">
                         <label class="block text-sm font-medium text-gray-700">Karigaar Name</label>
