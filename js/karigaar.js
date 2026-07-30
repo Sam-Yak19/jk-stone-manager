@@ -71,6 +71,17 @@ window.calculateGunFeet = function() {
     return totalGunFeet;
 };
 
+window.saveActiveSheetNote = function() {
+    if (!currentKarigaarName || !karigaarData[currentKarigaarName] || karigaarData[currentKarigaarName].length === 0) return;
+    
+    const select = document.getElementById('karigaarTargetSheetSelect');
+    const sectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
+    
+    // Save the text to the active worksheet instantly as you type
+    karigaarData[currentKarigaarName][sectionIndex].sheetNote = document.getElementById('activeSheetNote').value;
+    saveKarigaarData();
+};
+
 // --- 3. UI REFRESH FUNCTIONS ---
 
 // NEW: Keeps the Target Sheet Dropdown updated without losing current selection
@@ -136,6 +147,10 @@ function updateMultiStoneInputs(index) {
 
     const displayEl = document.getElementById('displayTotalGunFeet');
     if (displayEl) displayEl.innerText = multiData.totalGunFeet || 0;
+    const noteEl = document.getElementById('activeSheetNote');
+    if (noteEl) {
+        noteEl.value = karigaarData[currentKarigaarName][index].sheetNote || "";
+    }
 }
 
 function refreshKarigaarUI() {
@@ -206,10 +221,13 @@ function renderKarigaarLayers() {
             <ul class="space-y-3">
                 ${layer.products.length === 0 ? `<li class="text-gray-500 italic text-sm">No stones added yet.</li>` : ''}
                 ${layer.products.map(p => `
-                    <li class="flex justify-between items-center bg-purple-50 p-3 rounded-md">
-                        <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
-                        <span class="font-bold text-purple-700">${p.quantity} pcs</span>
-                        <button onclick="removeKarigaarWork(${originalIndex}, ${p.id})" class="text-red-500 text-sm font-semibold hover:text-red-700">Remove</button>
+                    <li class="flex flex-col bg-purple-50 p-3 rounded-md">
+                        <div class="flex justify-between items-center w-full">
+                            <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
+                            <span class="font-bold text-purple-700">${p.quantity} pcs</span>
+                            <button onclick="removeKarigaarWork(${originalIndex}, ${p.id})" class="text-red-500 text-sm font-semibold hover:text-red-700">Remove</button>
+                        </div>
+                        ${p.note ? `<span class="text-sm text-gray-600 mt-2 italic border-t border-purple-100 pt-2">📝 ${p.note}</span>` : ''}
                     </li>
                 `).join('')}
             </ul>
@@ -356,13 +374,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const qty = parseInt(document.getElementById('karigaarProductQuantity').value);
             const len = parseFloat(document.getElementById('karigaarProductLength').value);
             const wid = parseFloat(document.getElementById('karigaarProductWidth').value);
+            const noteText = document.getElementById('karigaarProductNote').value.trim(); // NEW
             
-            // 1. Grab target from dropdown
+            // Grab target from dropdown
             const select = document.getElementById('karigaarTargetSheetSelect');
             const targetSectionIndex = select ? parseInt(select.value) : karigaarData[currentKarigaarName].length - 1;
 
             karigaarData[currentKarigaarName][targetSectionIndex].products.push({
-                id: Date.now(), length: len, width: wid, quantity: qty
+                id: Date.now(), length: len, width: wid, quantity: qty, note: noteText // NEW
             });
 
             saveKarigaarData();
@@ -376,6 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('karigaarProductQuantity').value = '';
             document.getElementById('karigaarProductLength').value = '';
             document.getElementById('karigaarProductWidth').value = '';
+            
             if (select) select.value = keepSection;
         });
     }
@@ -419,9 +439,10 @@ window.archiveKarigaarSection = async function(sectionIndex) {
             karigaarName: currentKarigaarName,
             sheetName: sectionToArchive.name,
             date: new Date().toLocaleDateString('en-IN'),
+            sheetNote: sectionToArchive.sheetNote || "", // NEW: Send note to backend
             multiStones: sectionToArchive.multiStones,
             products: sectionToArchive.products,
-            ownerId: actualOwnerId // Uses the correct ID now!
+            ownerId: actualOwnerId 
         };
         
         try {
@@ -513,17 +534,24 @@ window.renderSavedKarigaarArchive = async function() {
             card.className = 'bg-white p-6 rounded-2xl shadow-md border border-purple-100 flex flex-col md:flex-row gap-6 items-start';
             
             // Generate list of cut stones
+            // Generate list of cut stones
             const stonesListHtml = block.products.map(p => `
-                <li class="flex justify-between items-center bg-gray-50 p-2 rounded text-sm border border-gray-100">
-                    <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
-                    <span class="font-bold text-purple-700">${p.quantity} pcs</span>
+                <li class="flex flex-col bg-gray-50 p-2 rounded text-sm border border-gray-100">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700">${p.length}ft x ${p.width}ft</span>
+                        <span class="font-bold text-purple-700">${p.quantity} pcs</span>
+                    </div>
+                    ${p.note ? `<span class="text-xs text-gray-500 italic mt-1 border-t pt-1">📝 ${p.note}</span>` : ''}
                 </li>
             `).join('');
 
             card.innerHTML = `
                 <div class="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-purple-100 pb-4 md:pb-0 md:pr-6">
                     <h3 class="text-2xl font-black text-purple-900">${block.karigaarName}</h3>
-                    <p class="text-sm text-purple-600 font-bold mb-3">📅 ${block.date} | ${block.sheetName}</p>
+                    <p class="text-sm text-purple-600 font-bold mb-2">📅 ${block.date} | ${block.sheetName}</p>
+                    
+                    <!-- Display the Block Note here -->
+                    ${block.sheetNote ? `<div class="bg-yellow-50 text-yellow-800 text-sm italic p-2 rounded border border-yellow-200 mb-3 shadow-sm">📝 ${block.sheetNote}</div>` : ''}
                     
                     <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 mb-4 max-h-40 overflow-y-auto">
                         <p class="text-xs text-purple-800 uppercase font-bold tracking-wider mb-1">Stone Dimensions (${block.multiStones?.numberOfStones || 0} Stones)</p>
@@ -543,10 +571,13 @@ window.renderSavedKarigaarArchive = async function() {
                         </div>
                     </div>
                     
-                    <button onclick="deleteCloudKarigaarBlock('${block._id}')" class="mt-4 w-full py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-lg text-sm transition-colors border border-red-200">Delete Record</button>
+                    <div class="flex gap-2 mt-4 w-full">
+                        <button onclick="editCloudKarigaarBlock('${block._id}')" class="flex-1 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold rounded-lg text-sm transition-colors border border-blue-200">Edit / Resume</button>
+                        <button onclick="deleteCloudKarigaarBlock('${block._id}')" class="flex-1 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-lg text-sm transition-colors border border-red-200">Delete Record</button>
+                    </div>
                 </div>
                 
-                <div class="w-full md:w-2/3">
+                <div class="w-full md:w-2/3 md:pl-6">
                     <h4 class="font-bold text-gray-800 mb-3 border-b pb-2">Cut Stones Inventory</h4>
                     ${block.products.length > 0 ? `<ul class="space-y-2 grid grid-cols-1 sm:grid-cols-2 gap-2">${stonesListHtml}</ul>` : `<p class="text-gray-500 italic text-sm">No stones recorded for this block.</p>`}
                 </div>
@@ -639,5 +670,46 @@ window.removeStoneGroup = function(groupId) {
     if (group) {
         group.remove();
         calculateGunFeet();
+    }
+}
+
+// 4. Edit / Resume a Karigaar record from Cloud
+window.editCloudKarigaarBlock = async function(id) {
+    const blockToEdit = cloudKarigaarArchive.find(b => b._id === id);
+    if (!blockToEdit) return;
+
+    if(confirm("This will pull the record back to your Active Work screen so you can edit it. It will be temporarily removed from the cloud database until you finalize it again. Continue?")) {
+        try {
+            // 1. Delete from cloud so it's not duplicated
+            const response = await fetch(`/api/karigaars/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                
+                // 2. Add it back to the local active whiteboard
+                const kName = blockToEdit.karigaarName;
+                if (!karigaarData[kName]) {
+                    karigaarData[kName] = [];
+                }
+                
+                karigaarData[kName].push({
+                    name: blockToEdit.sheetName || `Work Sheet ${karigaarData[kName].length + 1}`,
+                    sheetNote: blockToEdit.sheetNote || "", // NEW: Restore the note
+                    multiStones: blockToEdit.multiStones,
+                    products: blockToEdit.products
+                });
+                
+                currentKarigaarName = kName;
+                saveKarigaarData();
+                refreshKarigaarUI();
+                
+                // 3. Switch back to the Active Work tab
+                const karigaarTabBtn = document.getElementById('karigaarTab');
+                if (karigaarTabBtn) karigaarTabBtn.click();
+                
+            } else {
+                alert("Failed to pull record for editing.");
+            }
+        } catch (error) {
+            alert("Server error during edit. Check connection.");
+        }
     }
 }

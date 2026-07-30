@@ -5,7 +5,8 @@ const KarigaarProductSchema = new mongoose.Schema({
     id: Number,
     length: Number,
     width: Number,
-    quantity: Number
+    quantity: Number,
+    note: { type: String, default: "" } // NEW: Added note field
 });
 
 // Blueprint for the multi-stone input
@@ -23,12 +24,11 @@ const karigaarWorkSchema = new mongoose.Schema({
     karigaarName: { type: String, required: true },
     sheetName: { type: String },
     date: { type: String },
+    sheetNote: { type: String, default: "" }, // NEW: Saves the note for the entire block
     
-    // The new fields we added
     multiStones: MultiStoneSchema,
     products: [KarigaarProductSchema],
     
-    // CRITICAL: Required to link the data to the logged-in user!
     ownerId: { type: String, required: true } 
 }, { timestamps: true });
 
